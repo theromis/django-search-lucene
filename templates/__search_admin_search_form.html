@@ -1,0 +1,40 @@
+{% load i18n %}
+
+<!-- search form begin -->
+<div id="block-search">
+<form
+	name="form-search-query"
+	action="__search__/"
+	method="POST"
+>
+	{% if error %}
+		<ul class="errorlist">
+			<li>
+				{% ifequal error "parsing_error" %}
+					Invalid query string, See
+					<a
+						target="_new"
+						href="http://lucene.apache.org/java/docs/queryparsersyntax.html"
+							>Apache Lucene - Query Parser Syntax</a>.
+				{% endifequal %}
+			</li>
+		</ul>
+	{% endif %}
+	{{form.as_p}}
+	&nbsp;
+	<input type="submit" name="search" value="{% trans "Search" %}" />
+	<div style="clear:both;"></div>
+</form>
+</div>
+<!-- search form end -->
+
+<script type="text/javascript">
+setTimeout(
+	function()
+	{
+		document.getElementById("id_query").select();
+		document.getElementById("id_query").focus();
+	},
+	100
+);
+</script>

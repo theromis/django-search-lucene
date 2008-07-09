@@ -1,0 +1,106 @@
+{% extends "admin/base_site.html" %}
+{% load adminmedia admin_list i18n %}
+
+{% block stylesheet %}{% admin_media_prefix %}css/changelists.css{% endblock %}
+{% block bodyclass %}change-list{% endblock %}
+{% block coltype %}colMS{% endblock %}
+
+{% block extrastyle %}{% include "__search_admin_stylesheet.html" %}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+	<a href="/admin/">{% trans "Home" %}</a> &rsaquo;
+	<a href="/admin/{{opts.app_label}}/">{{ opts.verbose_name_plural|capfirst }}</a> &rsaquo;
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div id="content-main">
+
+{% include "__search_admin_search_form.html" %}
+
+<div class="module">
+
+{% block result-list %}
+<table class="table-search" width="100%">
+<caption>{% trans "Index Information" %}</caption>
+<tr>
+	<th scope="row">{% trans "Total indexed document count" %}:</th>
+	<td>{{reader.num_docs}}</td>
+</tr>
+<tr>
+	<th scope="row">{% trans "Last indexed time" %}:</th>
+	<td>{{reader.last_modified_time|date:"r T"}}</td>
+</tr>
+<tr>
+	<th scope="row">{% trans "Index Version" %}:</th>
+	<td>{{reader.get_version}}</td>
+</tr>
+<tr>
+	<th scope="row">{% trans "Is optimized?" %}:</th>
+	<td>
+<form
+	action="__optimize__/"
+	method="POST"
+>
+		{{reader.is_optimized|yesno}}
+		{% if not reader.is_optimized %}
+			<input type="submit"
+				value="{% trans "Optimize?" %}"
+		/>
+		{% endif %}
+</form>
+	</td>
+</tr>
+</table>
+
+
+<br />
+<table width="100%">
+<caption>{% trans "Lucene Models" %}</caption>
+<thead>
+<tr>
+	<th scope="col">{% trans "Model Name" %}</th>
+	<th scope="col">{% trans "DocumentCount" %}</th>
+</tr>
+</thead>
+<tbody>
+{% for model in model_list %}
+<tr>
+	<td>
+		<a
+			href="{{model.name}}/"
+			>{{model.meta.verbose_name|capfirst}}({{model.meta.app_label}})</a>
+	</td>
+	<td align="right">{{model.objects_search.count}}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+{% endblock %}
+
+</div>
+
+</div>
+{% endblock %}
+
+{% block sidebar %}
+<div id="content-related">
+	<div class="module">
+		<h2>{% trans 'Actions' %}</h2>
+		<h3><a href="__clean__/"
+			onclick='
+{% if not reader.numDocs %}
+return false;
+{% endif %}
+if (! window.confirm("{% trans "Do you really clean up the entire objects?" %}"))
+{
+	return false;
+}
+return true;
+			'
+		>{% trans 'Remove All indexed objects' %}</a></h3>
+	</div>
+</div>
+{% endblock %}

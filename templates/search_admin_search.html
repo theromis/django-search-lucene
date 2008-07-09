@@ -1,0 +1,135 @@
+{% extends "admin/base_site.html" %}
+{% load adminmedia admin_list i18n %}
+
+{% block stylesheet %}{% admin_media_prefix %}css/changelists.css{% endblock %}
+{% block bodyclass %}change-list{% endblock %}
+{% block coltype %}colMS{% endblock %}
+
+{% block extrastyle %}{% include "__search_admin_stylesheet.html" %}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+	<a href="/admin/">{% trans "Home" %}</a> &rsaquo;
+	<a href="/admin/{{opts.app_label}}/">{{ opts.verbose_name_plural|capfirst }}</a> &rsaquo;
+	<a href="./">{% trans "Search Query" %}</a> &rsaquo;
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div id="content-main">
+
+{% include "__search_admin_search_form.html" %}
+
+<div class="module">
+<!-- object list begin -->
+
+<p id="search-raw_query">
+	<label>Raw Query</label>:
+		{% if queryset.get_raw_query %}
+			{{queryset.get_raw_query}}
+		{% endif %}
+</p>
+
+<table cellspacing="0">
+<thead>
+<tr>
+	<th scope="col" width="5%">{% trans "Hit ID" %}</th>
+	<th scope="col" width="5%">{% trans "Score" %}</th>
+	<th scope="col">{{opts_model.model_name}}</th>
+</tr>
+</thead>
+<tbody>
+
+{% for object in object_list %}
+<tr class="{% cycle 'row1' 'row2' %}">
+	<td align="right">{{object.hit.getId}}</td>
+	<td>{{object.getScore|floatformat:"-4"}}</td>
+	<td>
+		<a href="/admin/{{opts.app_label}}/{{object.meta.module_name}}/{{object.pk}}/">{{object}}</a>.
+
+		{% for field in object.installed_fields %}
+			{% if field.check_highlighted %}
+				<h3
+					style="
+cursor: pointer;
+					"
+					onclick='
+var o = this;
+var block = null;
+while (true)
+{
+	if (o.nextSibling.tagName && o.nextSibling.tagName.toUpperCase() == "BLOCKQUOTE")
+	{
+		block = o.nextSibling;
+		break;
+	}
+	o = o.nextSibling;
+}
+if (block)
+{
+	if (block.style.display == "none")
+	{
+		block.style.display = "";
+	} else {
+		block.style.display = "none";
+	}
+}
+return false;
+					'
+				>{{field.name|capfirst}}</h3>
+				<blockquote
+					style="
+						display: none;
+					"
+				>
+					{{field.highlight|safe}}
+				</blockquote>
+			{% endif %}
+		{% endfor %}
+	</td>
+</tr>
+{% endfor %}
+</tbody>
+
+</table>
+
+<p class="paginator">
+{% for i in page_range %}
+	{% ifequal page i %}
+		<span class="this-page">{{i}}</span>
+	{% else %}
+		<a
+			href="#"
+			onclick='
+document.form_search_query.page.value = "{{i}}";
+document.form_search_query.submit();
+return false;
+			'
+		>{{i}}</a>
+	{% endifequal %}
+{% endfor %}
+
+{{ object_list|length }}
+{% ifequal object_list.count 1 %}document{% else %}documents{% endifequal %} found
+</p>
+
+
+
+<!-- object list end -->
+
+
+
+</div>
+
+</form>
+</div>
+{% endblock %}
+
+{% block sidebar %}
+<div id="content-related">
+	<div class="module">
+		<h2>{% trans 'Actions' %}</h2>
+	</div>
+</div>
+{% endblock %}
