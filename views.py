@@ -21,6 +21,7 @@ from django import template
 from django.db import models
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import render_to_response as render_to_response_django, get_object_or_404
+from django.utils.translation import ugettext as _
 from django.views.generic.list_detail import object_list, object_detail
 
 import core, pylucene
@@ -30,12 +31,49 @@ import forms as forms_search
 # to register the models for search, re-read(or first read) the all models.
 models.get_models()
 
+def check_auth (func) :
+	def wrapper (request, **kwargs) :
+		if not request.user.is_staff :
+			#return HttpResponse(content="<h1>UnAuthorized Request</h1>", status=401)
+			return HttpResponseRedirect("/admin/")
+
+		return func(request, **kwargs)
+
+	return wrapper
+
+def match_func_by_method (func) :
+	def wrapper (request, **kwargs) :
+		try :
+			if kwargs.has_key("_method") and kwargs.get("_method") in ("GET", "POST", "PUT", "DELETE", ) :
+				__method = kwargs.get("_method")
+			elif request.META["REQUEST_METHOD"] not in ("GET", "POST", "PUT", "DELETE", ) :
+				__method = "POST"
+			else :
+				__method = request.META["REQUEST_METHOD"]
+
+			__name = "%s_%s" % \
+				( \
+					__method.lower(), \
+					func.func_name \
+				)
+
+			if not func.func_globals.has_key(__name) :
+				return func(request, **kwargs)
+			else :
+				return func.func_globals.get(__name)(request, getattr(request, __method).copy(), **kwargs)
+
+		except Exception, e :
+			raise
+
+	return wrapper
+
 def render_to_response (request, *args, **kwargs) :
 	kwargs.update(
 		{"context_instance": template.RequestContext(request), }
 	)
 	return render_to_response_django(*args, **kwargs)
 
+@check_auth
 def execute (request, command=None, model_name=None, ) :
 	if command == "search" :
 		return search(request, model_name=model_name, )
@@ -46,6 +84,7 @@ def execute (request, command=None, model_name=None, ) :
 	return HttpResponseRedirect(
 			os.path.normpath(os.path.join(request.META.get("REQUEST_URI"), "../",)) + "/")
 
+@check_auth
 def index (request, *args, **kwargs) :
 	if kwargs.get("redirect", None) :
 		return HttpResponseRedirect(os.path.normpath(os.path.join(request.META.get("REQUEST_URI"), kwargs.get("redirect"))) + "/")
@@ -65,6 +104,7 @@ def index (request, *args, **kwargs) :
 		}
 	)
 
+@check_auth
 def model_view (request, model_name) :
 	info = core.Model.get_info(model_name)
 	if not info :
@@ -79,7 +119,7 @@ def model_view (request, model_name) :
 
 	return object_list(
 		request,
-		queryset=info.get("objects_search").all(),
+		queryset=info.get("__searcher__").all(),
 		paginate_by=20,
 		page=page,
         allow_empty=True,
@@ -91,6 +131,7 @@ def model_view (request, model_name) :
 		template_name="search_admin_model.html",
 	)
 
+@check_auth
 def model_object_view (request, model_name, object_id) :
 	info = core.Model.get_info(model_name)
 	if not info :
@@ -98,7 +139,7 @@ def model_object_view (request, model_name, object_id) :
 
 	return object_detail(
 		request,
-		queryset=info.get("objects_search").all(),
+		queryset=info.get("__searcher__").all(),
 		object_id=object_id,
 		template_name="search_admin_model_object.html",
 		extra_context={
@@ -129,6 +170,7 @@ class ObjectList (list) :
 	def count (self) :
 		return len(self)
 
+@check_auth
 def search (request, model_name=None, ) :
 	argument = request.POST.copy()
 	try :
@@ -147,7 +189,7 @@ def search (request, model_name=None, ) :
 		info = core.Model.get_info(model_name)
 		if info :
 			try :
-				queryset = info.get("objects_search").raw_query(raw_query)
+				queryset = info.get("__searcher__").raw_query(raw_query)
 			except Exception, e :
 				error = "parsing_error"
 		else :

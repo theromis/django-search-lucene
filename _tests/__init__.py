@@ -48,8 +48,26 @@ class document (models.Model) :
 
 	objects = models.Manager() # The default manager.
 	objects_search = Manager()
+	objects_search_global = Manager(target_models=None, )
 
+class document0 (models.Model) :
+	class Meta :
+		app_label = "tests"
+		ordering = ("id", )
 
+	title	= models.CharField(max_length=300, blank=False, null=False, )
+	content	= models.TextField(blank=True, null=True, )
+	summary	= models.TextField(blank=True, null=True, )
+	time_added	= models.DateTimeField()
+	path = models.FilePathField(blank=False, null=False, )
+	email = models.EmailField(blank=True, null=True, )
+
+	def __unicode__ (self) :
+		return "%s" % self.title
+
+	objects = models.Manager() # The default manager.
+	objects_search = Manager()
+	objects_search_global = Manager(target_models=["document0", ], )
 
 class SearcherTestRunner (unittest.TextTestRunner) :
 	def run (self, test) :
@@ -57,29 +75,33 @@ class SearcherTestRunner (unittest.TextTestRunner) :
 
 		return o
 
-def insert_documents (n) :
+def insert_documents (n, model=None) :
+	if model is None :
+		model = document
+
 	print ">> Cleaning up models."
 	# attach models
+
 	cursor = connection.cursor()
 
 	# drop table, if exists.
-	sql = "DROP TABLE %s" % document._meta.db_table
+	sql = "DROP TABLE %s" % model._meta.db_table
 	try :
 		cursor.execute(sql)
 	except :
 		pass
 
 	# create table
-	sql, params = sql_model_create(document, no_style())
+	sql, params = sql_model_create(model, no_style())
 	cursor.execute(sql[0])
 
-	#core.register(document, )
+	#core.register(model, )
 
 	print ">> Inserting documents"
 	d = list()
 	for i in range(n) :
 		d.append(
-			document.objects.create(
+			model.objects.create(
 				title=words(5, False),
 				content=paragraphs(1, False)[0][:50],
 				summary=paragraphs(1, False)[0][:50],
@@ -92,12 +114,7 @@ def insert_documents (n) :
 
 	return d
 
-def cleanup_documents () :
-	try :
-		document.objects.all().delete()
-	except :
-		pass
-
+def cleanup_index () :
 	try :
 		shutil.rmtree(settings.SEARCH_STORAGE_PATH)
 	except :
@@ -107,8 +124,17 @@ def cleanup_documents () :
 
 	pylucene.Indexer().clean().close()
 
+def cleanup_documents (model=None) :
+	if model is None :
+		model = document
+
+	try :
+		model.objects.all().delete()
+	except :
+		pass
+
 	# drop table, if exists.
-	sql = "DROP TABLE %s" % document._meta.db_table
+	sql = "DROP TABLE %s" % model._meta.db_table
 	cursor = connection.cursor()
 	try :
 		cursor.execute(sql)

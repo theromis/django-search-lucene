@@ -17,6 +17,7 @@
 
 import pprint, copy, re, datetime
 
+from django.db import models
 from django.db.models import fields as fields_django, options as options_django, fields as fields_django, signals
 from django.db.models.base import ModelBase
 from django.db.models.fields import FieldDoesNotExist
@@ -158,29 +159,46 @@ class DocumentValue (object) :
 	def get_sort_field_name (self, field_name) :
 		return "sort__%s" % field_name
 
-	def to_index (self, _type, v, delimeter=None, flatten=False, ) :
+	def to_index (self, _type, v, func_parse=None, flatten=False, ) :
+		"""
+		Evaluate object value to indexed value.
+
+		return:
+			[indexed value, tokenized value, ]
+			or,
+			[[indexed value, tokenized value, ], [..], ] : if value is list.
+		"""
 		if type(v) in (list, tuple, ) :
-			return [DocumentValue.to_index(_type, i, delimeter=delimeter, flatten=flatten) for i in v]
+			return [DocumentValue.to_index(_type, i, func_parse=func_parse, flatten=flatten) for i in v]
 		else :
 			if _type in ("str", "int", "keyword", "meta", "text", ) :
-				v = [str(v), ]
+				v = [str(v), None, ]
 			elif _type == "date" :
 				if isinstance(v, datetime.datetime) :
-					v = [v.strftime("%Y%m%d%H%M%S"), ]
+					v = [v.strftime("%Y%m%d%H%M%S"), None, ]
 				else :
-					v = [str(v), ]
+					v = [str(v), None, ]
 			elif _type == "multi-keyword" :
-				if not flatten and delimeter :
-					if not v :
-						v = ""
-					else :
-						v0 = v.split(delimeter)
-						v0.extend([v, ])
-						v = v0
-				else :
-					v = [str(v), ]
+				if not func_parse :
+					func_parse = lambda x : None
 
-			return flatten and "".join(v) or v
+				v = [str(v), func_parse(v), ]
+
+			return v
+
+	def to_query (self, _type, v, ) :
+		if type(v) in (list, tuple, ) :
+			return [DocumentValue.to_query(_type, i) for i in v]
+		else :
+			if _type in ("str", "int", "keyword", "meta", "text", "multi-keyword", ) :
+				v = str(v)
+			elif _type == "date" :
+				if isinstance(v, datetime.datetime) :
+					v = v.strftime("%Y%m%d%H%M%S")
+				else :
+					v = str(v)
+
+			return v
 
 	def from_index (self, _type, v, kind=None) :
 		if not v.strip() :
@@ -208,6 +226,7 @@ class DocumentValue (object) :
 
 	from_index = classmethod(from_index)
 	to_index = classmethod(to_index)
+	to_query = classmethod(to_query)
 	get_sort_field_name = classmethod(get_sort_field_name)
 
 class DocumentMeta (object) :
@@ -427,6 +446,9 @@ class Model (object) :
 	def get_field_name (self, field) :
 		return field.name
 
+	def get_name_by_model_name (self, app_label, model_name) :
+		return "%s.%s" % (app_label, model_name, )
+
 	def get_name (self, model) :
 		return "%s.%s" % (model._meta.app_label, model._meta.object_name)
 
@@ -456,11 +478,11 @@ class Model (object) :
 		if not analyzer :
 			analyzer = lucene.CJKAnalyzer()
 
-		_delimeter = None
 		__type = self.get_field_type(field)
 		if __type is None :
 			return None
 
+		_delimeter = None
 		if __type == "multi-keyword":
 			_delimeter = FIELDS_MULTI_KEYWORD_DELIMETER.get(field.__class__, None)
 
@@ -476,7 +498,6 @@ class Model (object) :
 		__field_name = self.get_field_name(field)
 		attr.update(
 			{
-				"delimeter": _delimeter,
 				"name": __field_name,
 				"verbose_name": field.verbose_name,
 				"attrname": __field_name,
@@ -485,6 +506,9 @@ class Model (object) :
 			}
 		)
 		attr.update(kwargs)
+
+		if _delimeter and not attr.has_key("func_parse") :
+			attr["func_parse"] = lambda x : x.split(_delimeter)
 
 		return attr
 
@@ -562,9 +586,10 @@ class Model (object) :
 			"fields": __fields,
 			"meta": self.get_meta(model, fields=__fields),
 			"name": self.get_name(model),
-			"objects_search": model.objects_search,
+			"__searcher__": model.__searcher__,
 		}
 
+	get_name_by_model_name	= classmethod(get_name_by_model_name)
 	get_info		= classmethod(get_info)
 	get_uid			= classmethod(get_uid)
 	get_name		= classmethod(get_name)
@@ -616,13 +641,11 @@ def register (model, **kwargs) :
 		for i in SIGNALS :
 			Signals.connect(model, i)
 
-		"""
 		from manager import Manager
 
 		# attach django model manager
-		model.objects_search = Manager()
-		model.objects_search.contribute_to_class(model, "objects_search")
-		"""
+		setattr(model, "__searcher__", Manager(), )
+		model.__searcher__.contribute_to_class(model, "__searcher__")
 
 		# analyze model
 		MODELS_REGISTERED.update(

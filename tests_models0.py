@@ -33,7 +33,7 @@ class ModelFilter0TestCase (unittest.TestCase):
 		self.from_model = _tests.document.objects
 		self.from_indexed = _tests.document.objects_search
 
-	def test_filter_Q_or (self) :
+	def tesT_filter_Q_or (self) :
 		"""Using Q object, 'OR'"""
 
 		o = self.from_model.all()[:2]
@@ -46,7 +46,7 @@ class ModelFilter0TestCase (unittest.TestCase):
 			set([i.pk for i in o_n])
 		)
 
-	def test_filter_Q_and (self) :
+	def tesT_filter_Q_and (self) :
 		"""Using Q object, 'AND'"""
 
 		o = self.from_model.all()[0]
@@ -57,15 +57,35 @@ class ModelFilter0TestCase (unittest.TestCase):
 		self.assertTrue(o_n.count(), 1)
 		self.assertEqual(o.pk, o_n[0].pk)
 
+	def test_global_search_manager (self) :
+		print
+		_tests.cleanup_documents(_tests.document0)
+		_tests.insert_documents(10, _tests.document0)
+
+		o = set([
+			(i._meta.app_label, i._meta.object_name, i.pk, )
+			for i in list(_tests.document.objects.all()) + list(_tests.document0.objects.all())
+		])
+
+		o_n = set([
+			(i.meta.app_label, i.meta.object_name, i.pk, )
+			for i in _tests.document.objects_search_global.filter()
+		])
+
+		self.assertEqual(o, o_n)
+
 
 if __name__ == "__main__" :
 	import sys
 	import _tests
 
+	from django.db import models
+
 	settings.SEARCH_STORAGE_PATH = settings.SEARCH_STORAGE_PATH  + "_test"
 	settings.SEARCH_STORAGE_TYPE = "fs"
 	#settings.DEBUG = 2
 
+	_tests.cleanup_index()
 	_tests.cleanup_documents()
 	_tests.insert_documents(10)
 

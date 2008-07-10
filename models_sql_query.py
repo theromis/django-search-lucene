@@ -18,6 +18,7 @@
 from django.db import models, connection
 from django.db.models import sql, ObjectDoesNotExist
 from django.db.models.sql import constants
+from django.db.models.sql.datastructures import Empty
 from django.db.models.sql.query import get_order_dir
 
 import lucene, core, pylucene
@@ -26,15 +27,18 @@ from models_sql_where import WhereNodeSearcher
 class Query (sql.Query) :
 	raw_queries = list()
 	_query_cache = None
+	target_models = Empty()
 
-	def __init__ (self, model, connection, where=WhereNodeSearcher) :
+	def __init__ (self, model, connection, where=WhereNodeSearcher, target_models=Empty()) :
 		super(Query, self).__init__(model, connection, where=WhereNodeSearcher)
+		self.target_models = target_models
 		self.raw_queries = list()
 
 	def clone(self, klass=None, **kwargs):
 		clone = super(Query, self).clone(klass=klass, **kwargs)
 
 		clone.raw_queries = self.raw_queries
+		clone.target_models = self.target_models
 		return clone
 
 	def __str__ (self) :
@@ -67,12 +71,30 @@ class Query (sql.Query) :
 						pylucene.QUERY_BOOLEANS.get("AND"),
 					)
 
-			_query.add(
-				pylucene.TermQuery(
-					pylucene.Term.new(core.FIELD_NAME_MODEL, self.model_info["name"])
-				),
-				pylucene.QUERY_BOOLEANS.get("AND"),
-			)
+			if self.target_models is None :
+				__models = core.MODELS_REGISTERED.keys()
+			elif type(self.target_models) in (list, tuple, ) and len(self.target_models) > 0 :
+				__models = self.target_models
+			else :
+				__models = [self.model_info["name"], ]
+
+			if len(__models) < 2 :
+				_query.add(
+					pylucene.TermQuery(
+						pylucene.Term.new(core.FIELD_NAME_MODEL, __models[0])
+					),
+					pylucene.QUERY_BOOLEANS.get("AND"),
+				)
+			else :
+				subquery = pylucene.BooleanQuery()
+				for i in __models :
+					subquery.add(
+						pylucene.TermQuery(
+							pylucene.Term.new(core.FIELD_NAME_MODEL, i)
+						),
+						pylucene.QUERY_BOOLEANS.get("OR"),
+					)
+				_query.add(subquery, pylucene.QUERY_BOOLEANS.get("OR"), )
 
 			self._query_cache = (_query, _ordering, )
 

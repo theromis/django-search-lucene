@@ -19,6 +19,7 @@ from django.conf import settings
 from django.db import connection
 from django.db.models import ObjectDoesNotExist
 from django.db.models.query import QuerySet as QuerySet_django
+from django.db.models.sql.datastructures import Empty
 
 from models_sql_query import Query
 
@@ -31,9 +32,11 @@ class QuerySet (QuerySet_django) :
 	_in_bulk = False
 	flat = False
 
-	def __init__ (self, model=None, query=None, ) :
+	def __init__ (self, model=None, query=None, target_models=Empty()) :
 		super(QuerySet, self).__init__(model=model, query=query)
-		self.query = query or Query(self.model, connection)
+
+		self.target_models = target_models
+		self.query = query or Query(self.model, connection, target_models=self.target_models)
 
 	def __repr__(self) :
 		return repr(list(self))

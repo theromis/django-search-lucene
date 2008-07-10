@@ -129,12 +129,15 @@ class WhereNodeSearcher (WhereNode) :
 		table_alias, name, field, lookup_type, value_annot, value = child
 
 		try :
-			value = core.DocumentValue.to_index(core.Model.get_field_type(field), value, flatten=True, )
+			value = core.DocumentValue.to_query(core.Model.get_field_type(field), value)
 		except Exception, e :
 			raise
 
+
 		subquery = None
-		if lookup_type in connection.operators:
+		if type(value) in (str, unicode, None, bool, int, long, float, ) :
+			######################################################################
+			# value is <str>
 			if lookup_type in ("search", "contains", "icontains", ) :
 				subquery = pylucene.TermQuery(
 					self.get_term(
@@ -175,49 +178,45 @@ class WhereNodeSearcher (WhereNode) :
 					None,
 					False,
 				)
-			else :
-				pass
-
-		if lookup_type in ("exact", "iexact", ) :
-			value = lookup_type == "iexact" and value.lower() or value
-			subquery = pylucene.TermQuery()
-			for i in value.split() :
-				subquery.add(self.get_term(field.name, i))
-		elif lookup_type == "in" :
-			subquery = pylucene.BooleanQuery()
-			for v in value :
-				subquery.add(
-					pylucene.TermQuery(self.get_term(field.name, v)),
-					pylucene.QUERY_BOOLEANS.get("OR"),
+			elif lookup_type in ("exact", "iexact", ) :
+				value = lookup_type == "iexact" and value.lower() or value
+				subquery = pylucene.TermQuery()
+				subquery.add(self.get_term(field.name, value))
+			elif lookup_type == "year" :
+				subquery = lucene.RegexQuery(
+					self.get_term(field.name, "^%s" % value),
 				)
-		elif lookup_type == "range" :
-			value.sort()
+			elif lookup_type in ("month", "day") :
+				value = "%02d" % int(value)
+				subquery = lucene.RegexQuery(
+					self.get_term(field.name, "^[\d]{4}[\d]{2}%s" % value),
+				)
+			elif lookup_type == "isnull":
+				subquery = lucene.RegexQuery(
+					self.get_term(field.name, "^$")
+				)
 
-			subquery = lucene.RangeQuery(
-				self.get_term(field.name, value[0]),
-				self.get_term(field.name, value[1]),
-				False,
-			)
-		elif lookup_type == "year" :
-			subquery = lucene.RegexQuery(
-				self.get_term(field.name, "^%s" % value),
-			)
-		elif lookup_type in ("month", "day") :
-			value = "%02d" % int(value)
-			subquery = lucene.RegexQuery(
-				self.get_term(field.name, "^[\d]{4}[\d]{2}%s" % value),
-			)
-		elif lookup_type == "isnull":
-			subquery = lucene.RegexQuery(
-				self.get_term(field.name, "^$")
-			)
+		elif type(value) in (list, tuple, ) :
+			if lookup_type == "range" :
+				value.sort()
+
+				subquery = lucene.RangeQuery(
+					self.get_term(field.name, value[0]),
+					self.get_term(field.name, value[1]),
+					False,
+				)
+			elif lookup_type == "in" :
+				subquery = pylucene.BooleanQuery()
+				for i in value :
+					subquery.add(
+						pylucene.TermQuery(self.get_term(field.name, i)),
+						pylucene.QUERY_BOOLEANS.get("OR"),
+					)
+
 		if subquery :
 			return subquery
 
 		raise TypeError("Invalid lookup_type: %r" % lookup_type)
-
-
-		return subquery
 
 	def negate (self) :
 		self.children = [Node(self.children, self.connector, not self.negated)]

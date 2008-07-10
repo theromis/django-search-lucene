@@ -48,6 +48,11 @@ QUERY_OPERATORS = {
 
 MAXINT = int(2**31-1)
 
+
+######################################################################
+# Exceptions
+class StorageException (Exception) : pass
+
 ######################################################################
 # Classes
 class __LUCENE__ (object) :
@@ -76,7 +81,6 @@ class __LUCENE__ (object) :
 		else :
 			self.storage = lucene.FSDirectory.getDirectory(
 				self.storage_path,
-				not os.path.exists(self.storage_path),
 			)
 
 	def close_storage (self) :
@@ -262,17 +266,20 @@ class Reader (__LUCENE__) :
 		return self
 
 	def num_docs (self) :
-		__last = self.last_modified_time()
-		if self.num_docs_cache and self.__last_modified_time and __last >= self.__last_modified_time :
-			return self.num_docs_cache
-		else :
-			self.open()
-			self.__last_modified_time = __last
+		try :
+			__last = self.last_modified_time()
+			if self.num_docs_cache and self.__last_modified_time and __last >= self.__last_modified_time :
+				return self.num_docs_cache
+			else :
+				self.open()
+				self.__last_modified_time = __last
 
-			self.num_docs_cache = self.reader.numDocs()
-			self.close()
+				self.num_docs_cache = self.reader.numDocs()
+				self.close()
 
-			return self.num_docs_cache
+				return self.num_docs_cache
+		except lucene.JavaError, e :
+			raise StorageException, e
 
 	def get_version (self) :
 		self.open_storage()
@@ -289,9 +296,13 @@ class Reader (__LUCENE__) :
 
 	def last_modified_time (self) :
 		self.open_storage()
-		t = datetime.datetime.fromtimestamp(
-			lucene.IndexReader.lastModified(self.storage) / 1000
-		)
+		try :
+			t = datetime.datetime.fromtimestamp(
+				lucene.IndexReader.lastModified(self.storage) / 1000
+			)
+		except lucene.JavaError, e :
+			raise StorageException, e
+
 		self.close_storage()
 		return t
 
@@ -334,7 +345,7 @@ class Field (object) :
 			value,
 			store and lucene.Field.Store.YES or lucene.Field.Store.NO,
 			tokenize and lucene.Field.Index.TOKENIZED or lucene.Field.Index.UN_TOKENIZED,
-			tokenize and lucene.Field.TermVector.WITH_POSITIONS_OFFSETS or lucene.Field.TermVector.NO,
+			lucene.Field.TermVector.WITH_POSITIONS_OFFSETS,
 		)
 
 	new		= classmethod(new)
@@ -438,8 +449,14 @@ class IndexManager (object) :
 			return
 
 		self.lock.acquire()
-		getattr(self, "func_%s" % command)(*args, **kwargs)
-		self.lock.release()
+		try :
+			getattr(self, "func_%s" % command)(*args, **kwargs)
+		except :
+			self.lock.release()
+			raise
+		else :
+			self.lock.release()
+
 
 INDEX_MANAGER = IndexManager()
 
@@ -461,25 +478,27 @@ def create_document_from_object (obj) :
 		v = core.DocumentValue.to_index(
 				i.get("type"),
 				getattr(obj, i["attrname"]),
-				delimeter=i.get("delimeter"),
+				func_parse=i.get("func_parse"),
 				flatten=i.get("flatten", False),
 		)
 
-		if i.get("flatten", False) :
-			doc.add(Field.new(
-				i["name"],
-				v,
-				i.get("store", False),
-				i.get("tokenize", False),
-			))
-		else :
-			for v0 in v :
+		doc.add(Field.new(
+			i["name"],
+			v[0],
+			i.get("store", False),
+			i.get("tokenize", False),
+		))
+
+		if not i.get("flatten", False) and type(v[1]) in (list, tuple, ) :
+			# index pared fragment of terms.
+			print i["name"], v[1]
+			for v0 in v[1] :
 				if not v0.strip() : continue
 				doc.add(Field.new(
 					i["name"],
 					v0,
-					i.get("store", False),
-					i.get("tokenize", False),
+					False,
+					False,
 				))
 
 	# add default field

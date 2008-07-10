@@ -74,6 +74,7 @@ if __name__ == "__main__" :
 	settings.SEARCH_STORAGE_PATH = settings.SEARCH_STORAGE_PATH  + "_test"
 	settings.SEARCH_STORAGE_TYPE = "fs"
 
+	_tests.cleanup_index()
 	_tests.cleanup_documents()
 
 	unittest.main(testRunner=_tests.SearcherTestRunner(verbosity=2))

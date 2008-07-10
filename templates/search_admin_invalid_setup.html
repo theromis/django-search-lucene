@@ -1,0 +1,26 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block extrastyle %}{% include "__search_admin_stylesheet.html" %}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+	<a href="/admin/">{% trans "Home" %}</a> &rsaquo;
+	<a href="/admin/{{opts.app_label}}/">{{ opts.verbose_name_plural|capfirst }}</a> &rsaquo;
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="exception">
+<h1>{{exception_title}}</h1>
+
+<p class="description">{{exception_description|safe}}</p>
+
+{% if exception %}
+<h2>Exception was,</h2>
+	<pre>{{exception.message}}</pre>
+{% endif %}
+
+</div>
+{% endblock %}

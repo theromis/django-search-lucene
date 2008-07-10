@@ -260,6 +260,7 @@ if __name__ == "__main__" :
 	settings.SEARCH_STORAGE_TYPE = "fs"
 	#settings.DEBUG = 2
 
+	_tests.cleanup_index()
 	_tests.cleanup_documents()
 	_tests.insert_documents(1)
 

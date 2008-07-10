@@ -4,6 +4,8 @@
 {% block bodyclass %}change-list{% endblock %}
 {% block coltype %}flex{% endblock %}
 
+{% block extrastyle %}{% include "__search_admin_stylesheet.html" %}{% endblock %}
+
 {% block breadcrumbs %}
 <div class="breadcrumbs">
 	<a href="/admin/">{% trans "Home" %}</a> &rsaquo;
@@ -14,14 +16,6 @@
 {% endblock %}
 
 {% block content %}
-<style type="text/css">
-.table-search th
-{
-	text-align: right;
-}
-</style>
-
-
 <div id="content-main">
 
 <h1>{{opts_model.model_name}}</h1>
@@ -35,7 +29,6 @@
 	<th scope="row"><nobr>{% blocktrans with field.verbose_name|capfirst as name %}{{name}}{% endblocktrans %}:</nobr></th>
 	<td>
 		{{field.get_value}}
-		{% if field.info.tokenize %}
 		&nbsp;&rsaquo;<a href="#"
 			onclick='
 var ul = document.getElementById("search-model-object-view-terms-{{field.name}}");
@@ -58,7 +51,6 @@ return false;
 				<li>{{t}}</li>
 			{% endfor %}
 		</ul>
-		{% endif %}
 	</td>
 </tr>
 {% endfor %}
