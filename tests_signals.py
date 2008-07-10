@@ -29,11 +29,11 @@ import _tests
 
 class SignalsTestCase (unittest.TestCase):
 	def setUp (self) :
-		self.from_model = _tests.Document.objects
-		self.from_indexed = _tests.Document.objects_search
+		self.from_model = _tests.document.objects
+		self.from_indexed = _tests.document.objects_search
 
 	def testCreateObject (self) :
-		o = _tests.Document.objects.create(
+		o = _tests.document.objects.create(
 			title=words(5, False),
 			content=paragraphs(1, False)[0],
 			summary=paragraphs(1, False)[0],

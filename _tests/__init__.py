@@ -31,7 +31,7 @@ import lucene, core, pylucene
 
 from manager import Manager
 
-class Document (models.Model) :
+class document (models.Model) :
 	class Meta :
 		app_label = "tests"
 		ordering = ("id", )
@@ -63,23 +63,23 @@ def insert_documents (n) :
 	cursor = connection.cursor()
 
 	# drop table, if exists.
-	sql = "DROP TABLE %s" % Document._meta.db_table
+	sql = "DROP TABLE %s" % document._meta.db_table
 	try :
 		cursor.execute(sql)
 	except :
 		pass
 
 	# create table
-	sql, params = sql_model_create(Document, no_style())
+	sql, params = sql_model_create(document, no_style())
 	cursor.execute(sql[0])
 
-	#core.register(Document, )
+	#core.register(document, )
 
 	print ">> Inserting documents"
 	d = list()
 	for i in range(n) :
 		d.append(
-			Document.objects.create(
+			document.objects.create(
 				title=words(5, False),
 				content=paragraphs(1, False)[0][:50],
 				summary=paragraphs(1, False)[0][:50],
@@ -94,7 +94,7 @@ def insert_documents (n) :
 
 def cleanup_documents () :
 	try :
-		Document.objects.all().delete()
+		document.objects.all().delete()
 	except :
 		pass
 
@@ -108,7 +108,7 @@ def cleanup_documents () :
 	pylucene.Indexer().clean().close()
 
 	# drop table, if exists.
-	sql = "DROP TABLE %s" % Document._meta.db_table
+	sql = "DROP TABLE %s" % document._meta.db_table
 	cursor = connection.cursor()
 	try :
 		cursor.execute(sql)

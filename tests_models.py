@@ -28,8 +28,8 @@ import lucene, core, pylucene
 class ModelFilterTestCase (unittest.TestCase) :
 
 	def setUp (self) :
-		self.from_model = _tests.Document.objects
-		self.from_indexed = _tests.Document.objects_search
+		self.from_model = _tests.document.objects
+		self.from_indexed = _tests.document.objects_search
 
 	def compare_2_list (self, o, o_n) :
 		self.assertEquals(o.count(), o_n.count())

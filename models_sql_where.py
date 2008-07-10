@@ -21,12 +21,11 @@ from django.conf import settings
 from django.db import models, connection
 from django.db.models.query_utils import QueryWrapper
 from django.db.models.sql.datastructures import EmptyResultSet, FullResultSet
-from django.db.models.sql.where import WhereNode
+from django.db.models.sql.where import WhereNode, OR, AND
 from django.utils import tree
 from django.utils.tree import Node
 
-import lucene, core
-from pylucene import BooleanQuery, QUERY_BOOLEANS, TermQuery
+import lucene, core, pylucene
 
 class WhereNodeSearcher (WhereNode) :
 
@@ -39,8 +38,12 @@ class WhereNodeSearcher (WhereNode) :
 		if not node.children:
 			return None
 
+		subquery = None
 		queries = list()
 		empty = True
+		if node.connector == OR :
+			subquery = pylucene.BooleanQuery()
+
 		for child in node.children:
 			try:
 				if hasattr(child, "as_sql") :
@@ -76,7 +79,20 @@ class WhereNodeSearcher (WhereNode) :
 				if query == sql :
 					continue
 
-				query.add(sql, QUERY_BOOLEANS.get(node.negated))
+				if node.connector == OR :
+					connector = OR
+				elif node.negated == False :
+					connector = False
+				else :
+					connector = True
+
+				if subquery :
+					subquery.add(sql, pylucene.QUERY_BOOLEANS.get(OR))
+				else :
+					query.add(sql, pylucene.QUERY_BOOLEANS.get(connector))
+
+		if subquery :
+			query.add(subquery, pylucene.QUERY_BOOLEANS.get(AND))
 
 		if empty:
 			raise EmptyResultSet
@@ -120,7 +136,7 @@ class WhereNodeSearcher (WhereNode) :
 		subquery = None
 		if lookup_type in connection.operators:
 			if lookup_type in ("search", "contains", "icontains", ) :
-				subquery = lucene.TermQuery(
+				subquery = pylucene.TermQuery(
 					self.get_term(
 						field.name,
 						"%s" % (lookup_type == "icontains" and value.lower() or value),
@@ -164,15 +180,15 @@ class WhereNodeSearcher (WhereNode) :
 
 		if lookup_type in ("exact", "iexact", ) :
 			value = lookup_type == "iexact" and value.lower() or value
-			subquery = TermQuery()
+			subquery = pylucene.TermQuery()
 			for i in value.split() :
 				subquery.add(self.get_term(field.name, i))
 		elif lookup_type == "in" :
-			subquery = BooleanQuery()
+			subquery = pylucene.BooleanQuery()
 			for v in value :
 				subquery.add(
-					TermQuery(self.get_term(field.name, v)),
-					QUERY_BOOLEANS.get("OR"),
+					pylucene.TermQuery(self.get_term(field.name, v)),
+					pylucene.QUERY_BOOLEANS.get("OR"),
 				)
 		elif lookup_type == "range" :
 			value.sort()

@@ -15,58 +15,52 @@
 #	along with this program; if not, write to the Free Software
 #	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-import sqlite3, time, threading, datetime, random, unittest
+import unittest, sys, datetime, random
 
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.auth import models as models_auth
 from django.contrib.webdesign.lorem_ipsum import words, paragraphs
-from django.db.models import ObjectDoesNotExist
+from django.db import models
+from django.db.models import Q
 
-import lucene, pylucene, core
+import core, pylucene
+
 import _tests
 
-class PyLuceneThreadTestCase (unittest.TestCase):
+class ModelFilter0TestCase (unittest.TestCase):
+	def setUp (self) :
+		self.from_model = _tests.document.objects
+		self.from_indexed = _tests.document.objects_search
 
-	def update_document (self, mainThread=False, ) :
-		if not mainThread :
-			pylucene.initialize_vm()
+	def test_filter_Q_or (self) :
+		"""Using Q object, 'OR'"""
 
-		self.documents = list(_tests.document.objects.all())
-		random.shuffle(self.documents)
-		for o in self.documents :
-			__title = str(o.pk) + " : " + o.title + str(random.random() * 1000)
-			__summary = o.summary + str(random.random() * 1000)
+		o = self.from_model.all()[:2]
+		o_n = self.from_indexed.filter(
+			Q(pk=o[0].pk) | Q(pk=o[1].pk)
+		)
 
-			o.title = __title
-			o.summary = __summary
+		self.assertEqual(
+			set([i.pk for i in o]),
+			set([i.pk for i in o_n])
+		)
 
-			try :
-				o.save()
-			except ObjectDoesNotExist :
-				return
-			except sqlite3.OperationalError:
-				return
-			except Exception, e :
-				print "[EE] Save error,", e
-				raise
-			else :
-				try :
-					o_n = _tests.document.objects_search.get(pk=o.pk)
-				except ObjectDoesNotExist :
-					pass
-				except Exception, e :
-					print "[EE] objects_search,", e
+	def test_filter_Q_and (self) :
+		"""Using Q object, 'AND'"""
 
-	def test_thread(self):
-		threads = []
-		for i in xrange(30) :
-			threads.append(threading.Thread(target=self.update_document))
+		o = self.from_model.all()[0]
+		o_n = self.from_indexed.filter(
+			Q(pk=o.pk) & Q(title=o.title)
+		)
 
-		[thread.start() for thread in threads]
-		[thread.join() for thread in threads]
+		self.assertTrue(o_n.count(), 1)
+		self.assertEqual(o.pk, o_n[0].pk)
 
 
 if __name__ == "__main__" :
-	core.register(_tests.document, )
+	import sys
+	import _tests
 
 	settings.SEARCH_STORAGE_PATH = settings.SEARCH_STORAGE_PATH  + "_test"
 	settings.SEARCH_STORAGE_TYPE = "fs"
@@ -77,6 +71,7 @@ if __name__ == "__main__" :
 
 	unittest.main(testRunner=_tests.SearcherTestRunner(verbosity=2))
 	sys.exit()
+
 
 
 """
