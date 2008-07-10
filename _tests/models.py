@@ -37,6 +37,7 @@ class Document (models.Model) :
 
 	objects = models.Manager() # The default manager.
 	objects_search = Manager()
+	objects_search_global = Manager(models=None)
 
 
 """
