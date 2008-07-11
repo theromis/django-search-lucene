@@ -15,6 +15,8 @@
 #	along with this program; if not, write to the Free Software
 #	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+import sys
+
 from django.db import models, connection
 from django.db.models import sql, ObjectDoesNotExist
 from django.db.models.sql import constants
@@ -72,7 +74,7 @@ class Query (sql.Query) :
 					)
 
 			if self.target_models is None :
-				__models = core.MODELS_REGISTERED.keys()
+				__models = sys.MODELS_REGISTERED.keys()
 			elif type(self.target_models) in (list, tuple, ) and len(self.target_models) > 0 :
 				__models = self.target_models
 			else :

@@ -25,6 +25,7 @@ class Manager (models.Manager) :
 		super(Manager, self).__init__()
 
 		self.target_models = target_models
+		self.manager_id = core.METHOD_NAME_SEARCH
 
 	def contribute_to_class (self, model, name) :
 		super(Manager, self).contribute_to_class(model, name)

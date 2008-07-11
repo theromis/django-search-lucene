@@ -15,7 +15,7 @@
 #	along with this program; if not, write to the Free Software
 #	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-import pprint, copy, re, datetime
+import sys, pprint, copy, re, datetime
 
 from django.db import models
 from django.db.models import fields as fields_django, options as options_django, fields as fields_django, signals
@@ -44,7 +44,9 @@ HIGHLIGHTED_COLORS = (
 	"#DCEAA3", # max background color
 )
 
-MODELS_REGISTERED = dict()
+sys.MODELS_REGISTERED = dict()
+
+METHOD_NAME_SEARCH	= "__searcher__"
 
 FIELD_NAME_UID		= "__uid__"
 FIELD_NAME_PK		= "__pk__"
@@ -373,7 +375,7 @@ class Document (object) :
 
 		self.query = query
 
-		self.model_info = MODELS_REGISTERED.get(self.doc.get(FIELD_NAME_MODEL), None)
+		self.model_info = sys.MODELS_REGISTERED.get(self.doc.get(FIELD_NAME_MODEL), None)
 
 		# for the compatibility with model object.
 		self._meta = self.model_info.get("meta")
@@ -438,7 +440,7 @@ class Model (object) :
 		elif isinstance(model.__class__, ModelBase) :
 			model = Model.get_name(model.__class__)
 
-		return MODELS_REGISTERED.get(model, None)
+		return sys.MODELS_REGISTERED.get(model, None)
 
 	def get_uid (self, model, pk) :
 		return "%s/%s" % (self.get_name(model), pk, )
@@ -616,15 +618,15 @@ class Signals (object) :
 
 	def post_save (self, instance=None, sender=None, created=False, **kwargs) :
 		if created :
-			pylucene.INDEX_MANAGER.index(instance)
+			sys.INDEX_MANAGER.index(instance)
 		else :
-			pylucene.INDEX_MANAGER.index_update(instance)
+			sys.INDEX_MANAGER.index_update(instance)
 
 	def pre_delete (self, instance=None, sender=None, **kwargs) :
 		pass
 
 	def post_delete (self, instance=None, sender=None, **kwargs) :
-		pylucene.INDEX_MANAGER.unindex(instance)
+		sys.INDEX_MANAGER.unindex(instance)
 
 	def class_prepared (self, sender=None, *args, **kwargs) :
 		register(sender)
@@ -637,7 +639,7 @@ class Signals (object) :
 
 def register (model, **kwargs) :
 	name = Model.get_name(model)
-	if not MODELS_REGISTERED.has_key(name) :
+	if not sys.MODELS_REGISTERED.has_key(name) :
 		for i in SIGNALS :
 			Signals.connect(model, i)
 
@@ -648,7 +650,7 @@ def register (model, **kwargs) :
 		model.__searcher__.contribute_to_class(model, "__searcher__")
 
 		# analyze model
-		MODELS_REGISTERED.update(
+		sys.MODELS_REGISTERED.update(
 			{
 				name : Model.analyze(model, **kwargs)
 			}

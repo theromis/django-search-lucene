@@ -26,7 +26,7 @@ except ImportError :
 	except :
 		raise ImportError, "Install PyLucene module. Visit http://pylucene.osafoundation.org/."
 
-import os, tempfile, shutil, threading, datetime
+import sys, os, tempfile, shutil, threading, datetime, types
 from django.conf import settings
 
 import core
@@ -398,10 +398,15 @@ class IndexManager (object) :
 	def optimize (self) :
 		self.execute("optimize", )
 
-	def func_index (self, obj) :
+	def func_index (self, objs) :
+		if type(objs) is not types.GeneratorType :
+			objs = iter([objs, ])
+
 		try :
 			w = IndexWriter()
-			w.index(create_document_from_object(obj), )
+			for obj in objs :
+				w.index(create_document_from_object(obj), )
+
 			w.close()
 		except Exception, e :
 			raise
@@ -458,7 +463,7 @@ class IndexManager (object) :
 			self.lock.release()
 
 
-INDEX_MANAGER = IndexManager()
+sys.INDEX_MANAGER = IndexManager()
 
 ######################################################################
 # Functions
@@ -491,7 +496,6 @@ def create_document_from_object (obj) :
 
 		if not i.get("flatten", False) and type(v[1]) in (list, tuple, ) :
 			# index pared fragment of terms.
-			print i["name"], v[1]
 			for v0 in v[1] :
 				if not v0.strip() : continue
 				doc.add(Field.new(
