@@ -69,6 +69,28 @@ class document0 (models.Model) :
 	objects_search = Manager()
 	objects_search_global = Manager(target_models=["document0", ], )
 
+class document_without_index (models.Model) :
+	class Meta :
+		app_label = "tests"
+		ordering = ("id", )
+
+	title	= models.CharField(max_length=300, blank=False, null=False, )
+	content	= models.TextField(blank=True, null=True, )
+	summary	= models.TextField(blank=True, null=True, )
+	time_added	= models.DateTimeField()
+	path = models.FilePathField(blank=False, null=False, )
+	email = models.EmailField(blank=True, null=True, )
+
+	def __unicode__ (self) :
+		return "%s" % self.title
+
+	objects = models.Manager() # The default manager.
+	objects_search = Manager()
+	objects_search_global = Manager(target_models=["document0", ], )
+
+	def save (self) :
+		super(document_without_index, self).save_base(cls=self)
+
 class SearcherTestRunner (unittest.TextTestRunner) :
 	def run (self, test) :
 		o = super(SearcherTestRunner, self).run(test)
@@ -79,7 +101,7 @@ def insert_documents (n, model=None) :
 	if model is None :
 		model = document
 
-	print ">> Cleaning up models."
+	#print ">> Cleaning up models."
 	# attach models
 
 	cursor = connection.cursor()
@@ -97,7 +119,7 @@ def insert_documents (n, model=None) :
 
 	#core.register(model, )
 
-	print ">> Inserting documents"
+	#print ">> Inserting documents"
 	d = list()
 	for i in range(n) :
 		d.append(
