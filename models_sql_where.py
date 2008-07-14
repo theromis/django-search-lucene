@@ -180,8 +180,7 @@ class WhereNodeSearcher (WhereNode) :
 				)
 			elif lookup_type in ("exact", "iexact", ) :
 				value = lookup_type == "iexact" and value.lower() or value
-				subquery = pylucene.TermQuery()
-				subquery.add(self.get_term(field.name, value))
+				subquery = pylucene.TermQuery(self.get_term(field.name, value))
 			elif lookup_type == "year" :
 				subquery = lucene.RegexQuery(
 					self.get_term(field.name, "^%s" % value),
