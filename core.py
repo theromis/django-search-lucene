@@ -15,12 +15,15 @@
 #	along with this program; if not, write to the Free Software
 #	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-import sys, pprint, copy, re, datetime
+import sys, pprint, copy, re, datetime, new, types
 
+from django.conf import settings
 from django.db import models
 from django.db.models import fields as fields_django, options as options_django, fields as fields_django, signals
 from django.db.models.base import ModelBase
 from django.db.models.fields import FieldDoesNotExist
+from django.db.models.manager import Manager as manager_django
+from django.db.models.query import QuerySet as queryset_django
 from django.db.models.sql.datastructures import Empty
 from django.dispatch import dispatcher
 from django.utils.datastructures import SortedDict
@@ -637,6 +640,145 @@ class Signals (object) :
 	post_delete	= classmethod(post_delete)
 	class_prepared	= classmethod(class_prepared)
 
+METHODS_FOR_CREATE_INDEX = (
+	"_clone",
+	"_filter_or_exclude",
+	"create",
+	"get",
+	"latest",
+	"in_bulk",
+	"order_by",
+	"distinct",
+	"extra",
+	"reverse",
+	"get_or_create",
+)
+
+
+class MethodCreateIndex (object) :
+
+	def method_create_index (self, cls) :
+		objs = None
+		if hasattr(cls, "to_create_index") and cls.to_create_index is None :
+			if settings.DEBUG > 1 :
+				print "[WW] just created, don't index this object."
+
+			return
+		elif hasattr(cls, "data_create_index") :
+			objs = iter(cls.data_create_index.values())
+		elif objs is None :
+			if type(cls) is types.GeneratorType :
+				objs = cls
+			elif type(cls) in (list, tuple, ) :
+				objs = iter(cls)
+			else :
+				objs = iter([cls, ])
+
+		try :
+			sys.INDEX_MANAGER.index(iter(cls))
+		except Exception, e :
+			if settings.DEBUG > 1 :
+				print "[EE]", e
+
+		return cls
+
+	def attach_create_index (self, obj) :
+		# add create_index
+		try :
+			obj.create_index = new.instancemethod(
+				self.method_create_index, obj, obj.__class__, )
+		except :
+			raise
+
+		######################################################################
+		# Re-Write
+		for i in METHODS_FOR_CREATE_INDEX :
+			if hasattr(self, "_query_%s" % i) :
+				func = getattr(self, "_query_%s" % i)
+			else :
+				func = self.__get_query_method(i)
+
+			setattr(obj, i, new.instancemethod(func, obj, obj.__class__, ), )
+
+		return obj
+
+	def manager_method_get_empty_query_set (self, cls, ) :
+		_queryset = manager_django.get_empty_query_set(cls, )
+		return self.attach_create_index(_queryset)
+
+	def manager_method_get_query_set (self, cls) :
+		_queryset = manager_django.get_query_set(cls)
+		return self.attach_create_index(_queryset)
+
+	def analyze_model_manager (self, model) :
+		for f in dir(model) :
+			try :
+				[getattr(model, f).__class__, ]
+			except Exception, e :
+				continue
+			else :
+				ff = getattr(model, f)
+				if isinstance(ff, manager_django) and f != METHOD_NAME_SEARCH and not hasattr(ff, "manager_id"):
+
+					ff.get_query_set = new.instancemethod(
+						self.manager_method_get_query_set, ff, ff.__class__
+					)
+					ff.get_empty_query_set = new.instancemethod(
+						self.manager_method_get_empty_query_set, ff, ff.__class__
+					)
+
+	######################################################################
+	# QuerySet method
+	def __get_query_method (self, name, ) :
+		def func (cls, *args, **kwargs) :
+			_queryset = getattr(queryset_django, name)(cls, *args, **kwargs)
+			_queryset = MethodCreateIndex.attach_create_index(_queryset)
+
+			return _queryset
+
+		return func
+
+	def _query_in_bulk (self, cls, id_list, *args, **kwargs) :
+		_result = queryset_django.in_bulk(cls, id_list)
+		_queryset = MethodCreateIndex.attach_create_index(cls)
+
+		_queryset.to_create_index = "in_bulk"
+		_queryset.data_create_index = _result
+
+		return _queryset
+
+	def _query_get_or_create (self, cls, *args, **kwargs) :
+		(_obj, created, ) = queryset_django.get_or_create(cls, *args, **kwargs)
+		_obj = MethodCreateIndex.attach_create_index(_obj)
+
+		"""
+		If object was created, the indexing job will be performed by
+		Signal Handlers(signals.post_save).
+		"""
+		_obj.to_create_index = created and None or ""
+
+		return _obj
+
+	def _query_create (self, cls, **kwargs) :
+		_obj = queryset_django.create(cls, **kwargs)
+		_obj = MethodCreateIndex.attach_create_index(_obj)
+
+		_obj.to_create_index = None
+
+		return _obj
+
+	method_create_index					= classmethod(method_create_index)
+	attach_create_index					= classmethod(attach_create_index)
+
+	manager_method_get_empty_query_set	= classmethod(manager_method_get_empty_query_set)
+	manager_method_get_query_set		= classmethod(manager_method_get_query_set)
+	analyze_model_manager				= classmethod(analyze_model_manager)
+
+	__get_query_method					= classmethod(__get_query_method)
+	_query_in_bulk						= classmethod(_query_in_bulk)
+	_query_get_or_create				= classmethod(_query_get_or_create)
+	_query_create						= classmethod(_query_create)
+
 def register (model, **kwargs) :
 	name = Model.get_name(model)
 	if not sys.MODELS_REGISTERED.has_key(name) :
@@ -648,6 +790,9 @@ def register (model, **kwargs) :
 		# attach django model manager
 		setattr(model, "__searcher__", Manager(), )
 		model.__searcher__.contribute_to_class(model, "__searcher__")
+
+		# attach create_index method to default manager
+		MethodCreateIndex.analyze_model_manager(model)
 
 		# analyze model
 		sys.MODELS_REGISTERED.update(
