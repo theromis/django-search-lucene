@@ -21,6 +21,7 @@ from django.conf.urls.defaults import *
 import views
 
 urlpatterns = patterns("",
+	url(r"^search/add/$", views.index, kwargs={"redirect": "../../", }, ),
 	url(r"^search/$", views.index, kwargs={"redirect": "../", }, ),
 	url(r"^__(?P<command>[\w\d\.][\w\d\.]*)__/", views.execute, ),
 
