@@ -17,47 +17,28 @@
 
 import unittest, sys, datetime, random
 
-from django.conf import settings
-from django.db import models
-from django.db.models import Q
-
+import core, pylucene
 import models as models_tests
 
-class ModelFilterQTestCase (unittest.TestCase):
-	def setUp (self) :
-		settings.SEARCH_STORAGE_TYPE = "fs"
-		self.from_model = models_tests.document.objects
-		self.from_indexed = models_tests.document.objects_search
+class ModelFilter0TestCase (unittest.TestCase):
+	def test_global_search_manager (self) :
+		o = set([
+			(i._meta.app_label, i._meta.object_name, i.pk, )
+			for i in list(models_tests.document.objects.all()) + list(models_tests.document0.objects.all())
+		])
 
-	def test_filter_Q_or (self) :
-		"""Using Q object, 'OR'"""
+		o_n = set([
+			(i.meta.app_label, i.meta.object_name, i.pk, )
+			for i in models_tests.document.objects_search_global.filter()
+		])
 
-		o = self.from_model.all()[:2]
-		o_n = self.from_indexed.filter(
-			Q(pk=o[0].pk) | Q(pk=o[1].pk)
-		)
-
-		self.assertEqual(
-			set([i.pk for i in o]),
-			set([i.pk for i in o_n])
-		)
-
-	def test_filter_Q_and (self) :
-		"""Using Q object, 'AND'"""
-
-		o = self.from_model.all()[0]
-		o_n = self.from_indexed.filter(
-			Q(pk=o.pk) & Q(title=o.title)
-		)
-
-		self.assertTrue(o_n.count(), 1)
-		self.assertEqual(o.pk, o_n[0].pk)
-
+		self.assertEqual(o, o_n)
 
 if __name__ == "__main__" :
-	import core, pylucene
 
+	from django.conf import settings
 	from django.db import models
+
 	models.get_models()
 
 	core.register(models_tests.document)
@@ -69,8 +50,11 @@ if __name__ == "__main__" :
 	#settings.DEBUG = 2
 
 	models_tests.cleanup_index()
+
 	models_tests.cleanup_documents()
-	models_tests.insert_documents(3)
+	models_tests.insert_documents(10)
+	models_tests.cleanup_documents(models_tests.document0)
+	models_tests.insert_documents(10, models_tests.document0)
 
 	unittest.main(testRunner=models_tests.SearcherTestRunner(verbosity=2))
 	sys.exit()
