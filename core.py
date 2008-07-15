@@ -513,7 +513,7 @@ class Model (object) :
 		attr.update(kwargs)
 
 		if _delimeter and not attr.has_key("func_parse") :
-			attr["func_parse"] = lambda x : x.split(_delimeter)
+			attr["func_parse"] = lambda x : x and x.split(_delimeter) or ""
 
 		return attr
 
