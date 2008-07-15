@@ -375,7 +375,7 @@ class DocumentField (object) :
 class Document (object) :
 
 	def __init__ (self, obj, query=None) :
-		(self.hit, self.doc, ) = obj
+		(self.hit, self.doc, self.explanation, ) = obj
 
 		self.query = query
 
@@ -435,6 +435,9 @@ class Document (object) :
 		for name, f in self.fields.items() :
 			if not f.abstract :
 				yield f
+
+	def get_explanation (self) :
+		return self.explanation
 
 class ModelDict (dict) :
 	def get_searcher (self) :

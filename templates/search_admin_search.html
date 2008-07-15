@@ -87,6 +87,27 @@ return false;
 				</blockquote>
 			{% endif %}
 		{% endfor %}
+
+		<h3
+			style="
+cursor: pointer;
+			"
+			onclick='
+var block = document.getElementById("object-{{object.pk}}-explanation");
+if (block.style.display == "none")
+{
+	block.style.display = "";
+} else {
+	block.style.display = "none";
+}
+return false;
+			'
+		>Query Explanation</h3>
+		<pre
+			style="
+				display: none;
+			"
+			id="object-{{object.pk}}-explanation">{{object.get_explanation}}</pre>
 	</td>
 </tr>
 {% endfor %}

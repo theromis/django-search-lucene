@@ -234,7 +234,7 @@ class Searcher (__LUCENE__) :
 
 			hit = lucene.Hit.cast_(hit)
 			try:
-				yield (hit, hit.getDocument(), )
+				yield (hit, hit.getDocument(), self.searcher.explain(query, hit.getId(), ))
 			except lucene.JavaError :
 				break
 
