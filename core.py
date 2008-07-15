@@ -435,6 +435,10 @@ class Document (object) :
 			if not f.abstract :
 				yield f
 
+class ModelDict (dict) :
+	def get_searcher (self) :
+		return self.get(METHOD_NAME_SEARCH)
+
 class Model (object) :
 
 	def get_info (self, model) :
@@ -587,12 +591,12 @@ class Model (object) :
 
 		__fields.update(__additional_fields)
 
-		return {
+		return ModelDict({
 			"fields": __fields,
 			"meta": self.get_meta(model, fields=__fields),
 			"name": self.get_name(model),
-			"__searcher__": model.__searcher__,
-		}
+			METHOD_NAME_SEARCH: model.__searcher__,
+		})
 
 	get_name_by_model_name	= classmethod(get_name_by_model_name)
 	get_info		= classmethod(get_info)

@@ -82,7 +82,7 @@
 			href="{{model.name}}/"
 			>{{model.meta.verbose_name|capfirst}}({{model.meta.app_label}})</a>
 	</td>
-	<td align="right">{{model.objects_search.count}}</td>
+	<td align="right">{{model.get_searcher.count}}</td>
 </tr>
 {% endfor %}
 {% endif %}
@@ -101,9 +101,6 @@
 		<h2>{% trans 'Actions' %}</h2>
 		<h3><a href="__clean__/"
 			onclick='
-{% if not reader.numDocs %}
-return false;
-{% endif %}
 if (! window.confirm("{% trans "Do you really clean up the entire objects?" %}"))
 {
 	return false;

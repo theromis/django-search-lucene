@@ -21,7 +21,7 @@ from django.conf import settings
 
 import lucene, pylucene
 
-class APyLuceneTestCase (unittest.TestCase) :
+class PyLuceneTestCase (unittest.TestCase) :
 
 	def setUp (self) :
 		self.storage_path = settings.SEARCH_STORAGE_PATH

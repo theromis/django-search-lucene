@@ -20,7 +20,7 @@ import unittest, sys, datetime, random
 import core, pylucene
 import models as models_tests
 
-class ModelFilter0TestCase (unittest.TestCase):
+class ModelSearchGlobalSearcherTestCase (unittest.TestCase):
 	def test_global_search_manager (self) :
 		o = set([
 			(i._meta.app_label, i._meta.object_name, i.pk, )

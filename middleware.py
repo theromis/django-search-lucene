@@ -44,7 +44,7 @@ class LuceneMiddleware (object) :
 			exception_title = ""
 			exception_description = ""
 
-			if exception.exc_info[0] == pylucene.StorageException :
+			if hasattr(exception, "exc_info") and exception.exc_info[0] == pylucene.StorageException :
 				exception_title = _("Search storage is not found or broken.")
 				exception_description = _("""
 Re-initialize your search storage,

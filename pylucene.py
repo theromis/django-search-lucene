@@ -441,6 +441,17 @@ class IndexManager (object) :
 
 		return True
 
+	def func_unindex_by_term (self, term) :
+		try :
+			w = IndexWriter()
+			w.unindex(term)
+			w.close()
+		except Exception, e :
+			raise
+			return False
+
+		return True
+
 	def func_clean (self, ) :
 		Indexer().clean().close()
 		return True

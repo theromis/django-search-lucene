@@ -22,9 +22,9 @@ import unittest
 import core, pylucene
 import models as models_tests
 
-class ModelCreateIndexTestCase (unittest.TestCase):
+class ModelCreateIndexPassThruTestCase (unittest.TestCase):
 
-	def test_create_index (self) :
+	def test_create_index_pass_thru (self) :
 		o = models_tests.document.objects.all()[0]
 		self.assertEqual(
 			models_tests.document.objects.get_or_create(pk=o.pk),
@@ -33,10 +33,6 @@ class ModelCreateIndexTestCase (unittest.TestCase):
 		self.assertEqual(
 			models_tests.document.objects.latest("time_added"),
 			models_tests.document.objects.latest("time_added").create_index(),
-		)
-		self.assertEqual(
-			list(models_tests.document.objects.in_bulk(range(10))),
-			list(models_tests.document.objects.in_bulk(range(10)).create_index()),
 		)
 		self.assertEqual(
 			list(models_tests.document.objects.all()),
@@ -60,6 +56,15 @@ class ModelCreateIndexTestCase (unittest.TestCase):
 				).order_by("time_added").distinct()),
 			list(models_tests.document.objects.exclude(pk__in=range(600)
 				).order_by("time_added").distinct().create_index()),
+		)
+
+
+		self.assertEqual(
+			list(models_tests.document.objects.exclude(pk__in=range(600)
+				).order_by("time_added").extra(where=["id is not null"])),
+			list(models_tests.document.objects.exclude(pk__in=range(600)
+				).order_by("time_added").extra(where=["id is not null"]
+					).create_index()),
 		)
 		self.assertEqual(
 			list(models_tests.document.objects.exclude(pk__in=range(600)

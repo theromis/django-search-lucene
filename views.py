@@ -15,7 +15,7 @@
 #	along with this program; if not, write to the Free Software
 #	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-import os
+import os, sys
 
 from django import template
 from django.db import models
@@ -79,7 +79,16 @@ def execute (request, command=None, model_name=None, ) :
 		return search(request, model_name=model_name, )
 
 	if not model_name :
-		pylucene.INDEX_MANAGER.execute(command)
+		sys.INDEX_MANAGER.execute(command)
+	else :
+		args = list()
+		if command == "clean" :
+			command = "unindex_by_term"
+			term = pylucene.Term.new(core.FIELD_NAME_MODEL, model_name)
+
+			args.append(term)
+
+		sys.INDEX_MANAGER.execute(command, *args)
 
 	return HttpResponseRedirect(
 			os.path.normpath(os.path.join(request.META.get("REQUEST_URI"), "../",)) + "/")
@@ -90,7 +99,7 @@ def index (request, *args, **kwargs) :
 		return HttpResponseRedirect(os.path.normpath(os.path.join(request.META.get("REQUEST_URI"), kwargs.get("redirect"))) + "/")
 
 	model_list = list()
-	for k, v in core.MODELS_REGISTERED.items() :
+	for k, v in sys.MODELS_REGISTERED.items() :
 		model_list.append(v)
 
 	return render_to_response(

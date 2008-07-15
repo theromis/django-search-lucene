@@ -252,6 +252,11 @@ if __name__ == "__main__" :
 	from django.db import models
 	from django.conf import settings
 
+	models.get_models()
+	core.register(models_tests.document)
+	core.register(models_tests.document0)
+	core.register(models_tests.document_without_index)
+
 	settings.SEARCH_STORAGE_PATH = settings.SEARCH_STORAGE_PATH  + "_test"
 	settings.SEARCH_STORAGE_TYPE = "fs"
 	#settings.DEBUG = 2

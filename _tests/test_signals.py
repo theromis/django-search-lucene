@@ -16,24 +16,16 @@
 #	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 import unittest, sys, datetime, random
-
-from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist
-from django.contrib.auth import models as models_auth
-from django.contrib.webdesign.lorem_ipsum import words, paragraphs
-from django.db import models
-
 import core, pylucene
-
-import _tests
+import models as models_tests
 
 class SignalsTestCase (unittest.TestCase):
 	def setUp (self) :
-		self.from_model = _tests.document.objects
-		self.from_indexed = _tests.document.objects_search
+		self.from_model = models_tests.document.objects
+		self.from_indexed = models_tests.document.objects_search
 
-	def testCreateObject (self) :
-		o = _tests.document.objects.create(
+	def tesTCreateObject (self) :
+		o = models_tests.document.objects.create(
 			title=words(5, False),
 			content=paragraphs(1, False)[0],
 			summary=paragraphs(1, False)[0],
@@ -51,7 +43,7 @@ class SignalsTestCase (unittest.TestCase):
 			core.DocumentValue.to_index("date", o_n.get("time_added")),
 		)
 
-	def testDeleteObjectFromModel (self) :
+	def tesTDeleteObjectFromModel (self) :
 		obj = self.from_model.all()[0]
 		pk = obj.pk
 
@@ -73,17 +65,26 @@ class SignalsTestCase (unittest.TestCase):
 
 if __name__ == "__main__" :
 	import sys
-	import _tests
+
+	from django.conf import settings
+	from django.core.exceptions import ObjectDoesNotExist
+	from django.contrib.webdesign.lorem_ipsum import words, paragraphs
+	from django.db import models
+
+	models.get_models()
+	core.register(models_tests.document)
+	core.register(models_tests.document0)
+	core.register(models_tests.document_without_index)
 
 	settings.SEARCH_STORAGE_PATH = settings.SEARCH_STORAGE_PATH  + "_test"
 	settings.SEARCH_STORAGE_TYPE = "fs"
 	#settings.DEBUG = 2
 
-	_tests.cleanup_index()
-	_tests.cleanup_documents()
-	_tests.insert_documents(10)
+	models_tests.cleanup_index()
+	models_tests.cleanup_documents()
+	models_tests.insert_documents(10)
 
-	unittest.main(testRunner=_tests.SearcherTestRunner(verbosity=2))
+	unittest.main(testRunner=models_tests.SearcherTestRunner(verbosity=2))
 	sys.exit()
 
 
