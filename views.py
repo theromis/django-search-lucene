@@ -66,6 +66,7 @@ def match_func_by_method (func) :
 		except Exception, e :
 			raise
 
+	wrapper.func_name = func.func_name
 	return wrapper
 
 def render_to_response (request, *args, **kwargs) :
