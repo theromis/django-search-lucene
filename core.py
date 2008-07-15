@@ -641,7 +641,6 @@ class Signals (object) :
 	class_prepared	= classmethod(class_prepared)
 
 METHODS_FOR_CREATE_INDEX = (
-	"_clone",
 	"_filter_or_exclude",
 	"create",
 	"get",
