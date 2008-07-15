@@ -39,6 +39,7 @@ def check_auth (func) :
 
 		return func(request, **kwargs)
 
+	wrapper.func_name = func.func_name
 	return wrapper
 
 def match_func_by_method (func) :
