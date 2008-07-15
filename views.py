@@ -40,6 +40,7 @@ def check_auth (func) :
 		return func(request, **kwargs)
 
 	wrapper.func_name = func.func_name
+	wrapper.__doc__ = func.__doc__
 	return wrapper
 
 def match_func_by_method (func) :
@@ -67,6 +68,7 @@ def match_func_by_method (func) :
 			raise
 
 	wrapper.func_name = func.func_name
+	wrapper.__doc__ = func.__doc__
 	return wrapper
 
 def render_to_response (request, *args, **kwargs) :
@@ -77,6 +79,9 @@ def render_to_response (request, *args, **kwargs) :
 
 @check_auth
 def execute (request, command=None, model_name=None, ) :
+	"""
+	Run the internal lucene jobs. See more details, see the methods of pylucene.IndexManager.
+	"""
 	if command == "search" :
 		return search(request, model_name=model_name, )
 
@@ -97,6 +102,10 @@ def execute (request, command=None, model_name=None, ) :
 
 @check_auth
 def index (request, *args, **kwargs) :
+	"""
+	Frontpage of Django search with Lucene.
+	"""
+
 	if kwargs.get("redirect", None) :
 		return HttpResponseRedirect(os.path.normpath(os.path.join(request.META.get("REQUEST_URI"), kwargs.get("redirect"))) + "/")
 
@@ -117,6 +126,10 @@ def index (request, *args, **kwargs) :
 
 @check_auth
 def model_view (request, model_name) :
+	"""
+	Object list of model.
+	"""
+
 	info = core.Model.get_info(model_name)
 	if not info :
 		raise Http404
@@ -144,6 +157,10 @@ def model_view (request, model_name) :
 
 @check_auth
 def model_object_view (request, model_name, object_id) :
+	"""
+	Model object details
+	"""
+
 	info = core.Model.get_info(model_name)
 	if not info :
 		raise Http404
@@ -183,6 +200,10 @@ class ObjectList (list) :
 
 @check_auth
 def search (request, model_name=None, ) :
+	"""
+	Search the index by raw lucene query.
+	"""
+
 	argument = request.POST.copy()
 	try :
 		page = int(argument.get("page", 0))

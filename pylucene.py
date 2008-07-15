@@ -520,6 +520,7 @@ def create_document_from_object (obj) :
 	doc.add(Field.new(core.FIELD_NAME_UID, str(core.Model.get_uid(obj, obj.pk)), True, False,))
 	doc.add(Field.new(core.FIELD_NAME_PK, str(obj.pk), True, False,))
 	doc.add(Field.new(core.FIELD_NAME_MODEL, core.Model.get_name(obj), True, False,))
+	doc.add(Field.new(core.FIELD_NAME_UNICODE, unicode(obj), True, False,))
 
 	return doc
 

@@ -51,9 +51,10 @@ sys.MODELS_REGISTERED = dict()
 
 METHOD_NAME_SEARCH	= "__searcher__"
 
-FIELD_NAME_UID		= "__uid__"
-FIELD_NAME_PK		= "__pk__"
-FIELD_NAME_MODEL	= "__model__"
+FIELD_NAME_UID		= "__uid__" # unique id of document
+FIELD_NAME_PK		= "__pk__" # pk value of object
+FIELD_NAME_MODEL	= "__model__" # model name of object
+FIELD_NAME_UNICODE	= "__unicode__" # for unicode(<document>)
 
 FIELDS_STR = (
 	fields_django.CharField,
@@ -397,7 +398,7 @@ class Document (object) :
 		return super(Document, self).__getattribute__(k)
 
 	def __unicode__ (self) :
-		return "<Document:%s>" % self.doc.get(FIELD_NAME_UID)
+		return self.doc.get(FIELD_NAME_UNICODE)
 
 	__str__ = __unicode__
 	__repr__ = __unicode__
