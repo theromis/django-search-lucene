@@ -646,7 +646,6 @@ METHODS_FOR_CREATE_INDEX = (
 	"create",
 	"get",
 	"latest",
-	"in_bulk",
 	"order_by",
 	"distinct",
 	"extra",
@@ -738,15 +737,6 @@ class MethodCreateIndex (object) :
 
 		return func
 
-	def _query_in_bulk (self, cls, id_list, *args, **kwargs) :
-		_result = queryset_django.in_bulk(cls, id_list)
-		_queryset = MethodCreateIndex.attach_create_index(cls)
-
-		_queryset.to_create_index = "in_bulk"
-		_queryset.data_create_index = _result
-
-		return _queryset
-
 	def _query_get_or_create (self, cls, *args, **kwargs) :
 		(_obj, created, ) = queryset_django.get_or_create(cls, *args, **kwargs)
 		_obj = MethodCreateIndex.attach_create_index(_obj)
@@ -775,7 +765,6 @@ class MethodCreateIndex (object) :
 	analyze_model_manager				= classmethod(analyze_model_manager)
 
 	__get_query_method					= classmethod(__get_query_method)
-	_query_in_bulk						= classmethod(_query_in_bulk)
 	_query_get_or_create				= classmethod(_query_get_or_create)
 	_query_create						= classmethod(_query_create)
 
