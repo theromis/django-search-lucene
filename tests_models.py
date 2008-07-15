@@ -17,19 +17,14 @@
 
 import re, sys, unittest, datetime, random
 
-from django.conf import settings
-from django.contrib.webdesign.lorem_ipsum import words, paragraphs
-from django.db import models
-
-import _tests
-
-import lucene, core, pylucene
+import core, pylucene
+import models as models_tests
 
 class ModelFilterTestCase (unittest.TestCase) :
 
 	def setUp (self) :
-		self.from_model = _tests.document.objects
-		self.from_indexed = _tests.document.objects_search
+		self.from_model = models_tests.document.objects
+		self.from_indexed = models_tests.document.objects_search
 
 	def compare_2_list (self, o, o_n) :
 		self.assertEquals(o.count(), o_n.count())
@@ -254,17 +249,18 @@ class ModelFilterTestCase (unittest.TestCase) :
 		self.assertTrue(len(m) < 1)
 
 if __name__ == "__main__" :
-	import sys
+	from django.db import models
+	from django.conf import settings
 
 	settings.SEARCH_STORAGE_PATH = settings.SEARCH_STORAGE_PATH  + "_test"
 	settings.SEARCH_STORAGE_TYPE = "fs"
 	#settings.DEBUG = 2
 
-	_tests.cleanup_index()
-	_tests.cleanup_documents()
-	_tests.insert_documents(1)
+	models_tests.cleanup_index()
+	models_tests.cleanup_documents()
+	models_tests.insert_documents(1)
 
-	unittest.main(testRunner=_tests.SearcherTestRunner(verbosity=2))
+	unittest.main(testRunner=models_tests.SearcherTestRunner(verbosity=2))
 	sys.exit()
 
 
