@@ -239,7 +239,7 @@ def search (request, model_name=None, ) :
 		queryset=queryset,
 		paginate_by=20,
 		page=page,
-        allow_empty=True,
+		allow_empty=True,
 		extra_context={
 			"form": form,
 			"queryset": queryset,
