@@ -5,8 +5,8 @@
 
 {% block breadcrumbs %}
 <div class="breadcrumbs">
-	<a href="/admin/">{% trans "Home" %}</a> &rsaquo;
-	<a href="/admin/{{opts.app_label}}/">{{ opts.verbose_name_plural|capfirst }}</a> &rsaquo;
+    <a href="/admin/">{% trans "Home" %}</a> &rsaquo;
+    <a href="/admin/{{opts.app_label}}/">{{ opts.verbose_name_plural|capfirst }}</a> &rsaquo;
 </div>
 {% endblock %}
 
@@ -19,7 +19,7 @@
 
 {% if exception %}
 <h2>Exception was,</h2>
-	<pre>{{exception.message}}</pre>
+    <pre>{{exception.message}}</pre>
 {% endif %}
 
 </div>

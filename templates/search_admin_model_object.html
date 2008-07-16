@@ -8,10 +8,10 @@
 
 {% block breadcrumbs %}
 <div class="breadcrumbs">
-	<a href="/admin/">{% trans "Home" %}</a> &rsaquo;
-	<a href="/admin/{{opts.app_label}}/">{{ opts.verbose_name_plural|capfirst }}</a> &rsaquo;
-	<a href="/admin/{{opts.app_label}}/{{opts_model.meta.module_name}}/">{{opts_model.meta.verbose_name|capfirst}}({{opts_model.meta.app_label}})</a> &rsaquo;
-	<a href="./">{{object}}</a> &rsaquo;
+    <a href="/admin/">{% trans "Home" %}</a> &rsaquo;
+    <a href="/admin/{{opts.app_label}}/">{{ opts.verbose_name_plural|capfirst }}</a> &rsaquo;
+    <a href="/admin/{{opts.app_label}}/{{opts_model.meta.module_name}}/">{{opts_model.meta.verbose_name|capfirst}}({{opts_model.meta.app_label}})</a> &rsaquo;
+    <a href="./">{{object}}</a> &rsaquo;
 </div>
 {% endblock %}
 
@@ -26,32 +26,32 @@
 <caption>{{object}}</caption>
 {% for field in object.installed_fields %}
 <tr>
-	<th scope="row"><nobr>{% blocktrans with field.verbose_name|capfirst as name %}{{name}}{% endblocktrans %}:</nobr></th>
-	<td>
-		{{field.get_value}}
-		&nbsp;&rsaquo;<a href="#"
-			onclick='
+    <th scope="row"><nobr>{% blocktrans with field.verbose_name|capfirst as name %}{{name}}{% endblocktrans %}:</nobr></th>
+    <td>
+        {{field.get_value}}
+        &nbsp;&rsaquo;<a href="#"
+            onclick='
 var ul = document.getElementById("search-model-object-view-terms-{{field.name}}");
 if (ul.style.display == "none")
 {
-	ul.style.display = "";
+    ul.style.display = "";
 } else {
-	ul.style.display = "none";
+    ul.style.display = "none";
 }
 return false;
-			'
-		>{% trans "Show Terms" %}</a>
-		<ul
-			id="search-model-object-view-terms-{{field.name}}"
-			style="
-				display: none;
-			"
-		>
-			{% for t in field.get_terms %}
-				<li>{{t}}</li>
-			{% endfor %}
-		</ul>
-	</td>
+            '
+        >{% trans "Show Terms" %}</a>
+        <ul
+            id="search-model-object-view-terms-{{field.name}}"
+            style="
+                display: none;
+            "
+        >
+            {% for t in field.get_terms %}
+                <li>{{t}}</li>
+            {% endfor %}
+        </ul>
+    </td>
 </tr>
 {% endfor %}
 </table>

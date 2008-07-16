@@ -9,8 +9,8 @@
 
 {% block breadcrumbs %}
 <div class="breadcrumbs">
-	<a href="/admin/">{% trans "Home" %}</a> &rsaquo;
-	<a href="/admin/{{opts.app_label}}/">{{ opts.verbose_name_plural|capfirst }}</a> &rsaquo;
+    <a href="/admin/">{% trans "Home" %}</a> &rsaquo;
+    <a href="/admin/{{opts.app_label}}/">{{ opts.verbose_name_plural|capfirst }}</a> &rsaquo;
 </div>
 {% endblock %}
 
@@ -26,33 +26,33 @@
 <table class="table-search" width="100%">
 <caption>{% trans "Index Information" %}</caption>
 <tr>
-	<th scope="row">{% trans "Total indexed document count" %}:</th>
-	<td>{{reader.num_docs}}</td>
+    <th scope="row">{% trans "Total indexed document count" %}:</th>
+    <td>{{reader.num_docs}}</td>
 </tr>
 <tr>
-	<th scope="row">{% trans "Last indexed time" %}:</th>
-	<td>{{reader.last_modified_time|date:"r T"}}</td>
+    <th scope="row">{% trans "Last indexed time" %}:</th>
+    <td>{{reader.last_modified_time|date:"r T"}}</td>
 </tr>
 <tr>
-	<th scope="row">{% trans "Index Version" %}:</th>
-	<td>{{reader.get_version}}</td>
+    <th scope="row">{% trans "Index Version" %}:</th>
+    <td>{{reader.get_version}}</td>
 </tr>
 <!--
 <tr>
-	<th scope="row">{% trans "Is optimized?" %}:</th>
-	<td>
+    <th scope="row">{% trans "Is optimized?" %}:</th>
+    <td>
 <form
-	action="__optimize__/"
-	method="POST"
+    action="__optimize__/"
+    method="POST"
 >
-		{{reader.is_optimized|yesno}}
-		{% if not reader.is_optimized %}
-			<input type="submit"
-				value="{% trans "Optimize?" %}"
-		/>
-		{% endif %}
+        {{reader.is_optimized|yesno}}
+        {% if not reader.is_optimized %}
+            <input type="submit"
+                value="{% trans "Optimize?" %}"
+        />
+        {% endif %}
 </form>
-	</td>
+    </td>
 </tr>
 -->
 </table>
@@ -63,26 +63,26 @@
 <caption>{% trans "Lucene Models" %}</caption>
 <thead>
 <tr>
-	<th scope="col">{% trans "Model Name" %}</th>
-	<th scope="col">{% trans "DocumentCount" %}</th>
+    <th scope="col">{% trans "Model Name" %}</th>
+    <th scope="col">{% trans "DocumentCount" %}</th>
 </tr>
 </thead>
 <tbody>
 {% if not model_list|length %}
 <tr>
-	<td colspan="2">
-		<h3>{% trans "No models for search." %}</h3>
-	</td>
+    <td colspan="2">
+        <h3>{% trans "No models for search." %}</h3>
+    </td>
 </tr>
 {% else %}
 {% for model in model_list %}
 <tr>
-	<td>
-		<a
-			href="{{model.name}}/"
-			>{{model.meta.verbose_name|capfirst}}({{model.meta.app_label}})</a>
-	</td>
-	<td align="right">{{model.get_searcher.count}}</td>
+    <td>
+        <a
+            href="{{model.name}}/"
+            >{{model.meta.verbose_name|capfirst}}({{model.meta.app_label}})</a>
+    </td>
+    <td align="right">{{model.get_searcher.count}}</td>
 </tr>
 {% endfor %}
 {% endif %}
@@ -97,17 +97,17 @@
 
 {% block sidebar %}
 <div id="content-related">
-	<div class="module">
-		<h2>{% trans 'Actions' %}</h2>
-		<h3><a href="__clean__/"
-			onclick='
+    <div class="module">
+        <h2>{% trans 'Actions' %}</h2>
+        <h3><a href="__clean__/"
+            onclick='
 if (! window.confirm("{% trans "Do you really clean up the entire objects?" %}"))
 {
-	return false;
+    return false;
 }
 return true;
-			'
-		>{% trans 'Remove All indexed objects' %}</a></h3>
-	</div>
+            '
+        >{% trans 'Remove All indexed objects' %}</a></h3>
+    </div>
 </div>
 {% endblock %}

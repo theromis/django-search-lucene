@@ -2,7 +2,7 @@
 """
  Copyright 2005 Spike^ekipS <spikeekips@gmail.com>
 
-	This program is free software; you can redistribute it and/or modify
+    This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
  the Free Software Foundation; either version 2 of the License, or
  (at your option) any later version.
@@ -21,14 +21,14 @@ from django.conf.urls.defaults import *
 import views
 
 urlpatterns = patterns("",
-	url(r"^search/add/$", views.index, kwargs={"redirect": "../../", }, ),
-	url(r"^search/$", views.index, kwargs={"redirect": "../", }, ),
-	url(r"^__(?P<command>[\w\d\.][\w\d\.]*)__/", views.execute, ),
+    url(r"^search/add/$", views.index, kwargs={"redirect": "../../", }, ),
+    url(r"^search/$", views.index, kwargs={"redirect": "../", }, ),
+    url(r"^__(?P<command>[\w\d\.][\w\d\.]*)__/", views.execute, ),
 
-	url(r"^(?P<model_name>[\w\d\.][\w\d\.]*)/__(?P<command>[\w\d\.][\w\d\.]*)__/", views.execute, ),
-	url(r"^(?P<model_name>[\w\d\.][\w\d\.]*)/(?P<object_id>.*)/", views.model_object_view, ),
-	url(r"^(?P<model_name>[\w\d\.][\w\d\.]*)/", views.model_view, ),
-	url(r"^", views.index, ),
+    url(r"^(?P<model_name>[\w\d\.][\w\d\.]*)/__(?P<command>[\w\d\.][\w\d\.]*)__/", views.execute, ),
+    url(r"^(?P<model_name>[\w\d\.][\w\d\.]*)/(?P<object_id>.*)/", views.model_object_view, ),
+    url(r"^(?P<model_name>[\w\d\.][\w\d\.]*)/", views.model_view, ),
+    url(r"^", views.index, ),
 )
 
 """

@@ -9,9 +9,9 @@
 
 {% block breadcrumbs %}
 <div class="breadcrumbs">
-	<a href="/admin/">{% trans "Home" %}</a> &rsaquo;
-	<a href="/admin/{{opts.app_label}}/">{{ opts.verbose_name_plural|capfirst }}</a> &rsaquo;
-	<a href="./">{{opts_model.meta.verbose_name|capfirst}}({{opts_model.meta.app_label}})</a> &rsaquo;
+    <a href="/admin/">{% trans "Home" %}</a> &rsaquo;
+    <a href="/admin/{{opts.app_label}}/">{{ opts.verbose_name_plural|capfirst }}</a> &rsaquo;
+    <a href="./">{{opts_model.meta.verbose_name|capfirst}}({{opts_model.meta.app_label}})</a> &rsaquo;
 </div>
 {% endblock %}
 
@@ -27,17 +27,17 @@
 <table cellspacing="0">
 <thead>
 <tr>
-	<th scope="col" width="5%">{% trans "Hit ID" %}</th>
-	<th scope="col" width="5%">{% trans "Score" %}</th>
-	<th scope="col">{{opts_model.model_name}}</th>
+    <th scope="col" width="5%">{% trans "Hit ID" %}</th>
+    <th scope="col" width="5%">{% trans "Score" %}</th>
+    <th scope="col">{{opts_model.model_name}}</th>
 </tr>
 </thead>
 <tbody>
 {% for object in object_list %}
 <tr class="{% cycle 'row1' 'row2' %}">
-	<td align="right">{{object.hit.getId}}</td>
-	<td>{{object.hit.getScore|floatformat:"-4"}}</td>
-	<td><a href="{{object.pk}}/">{{object}}</a></td>
+    <td align="right">{{object.hit.getId}}</td>
+    <td>{{object.hit.getScore|floatformat:"-4"}}</td>
+    <td><a href="{{object.pk}}/">{{object}}</a></td>
 </tr>
 {% endfor %}
 </tbody>
@@ -45,15 +45,15 @@
 
 <p class="paginator">
 {% for i in page_range %}
-	{% ifequal page i %}
-		<span class="this-page">{{i}}</span>
-	{% else %}
-		<a href="?page={{i}}"
-			{% ifequal pages i %}
-			class="end"
-			{% endifequal %}
-		>{{i}}</a>
-	{% endifequal %}
+    {% ifequal page i %}
+        <span class="this-page">{{i}}</span>
+    {% else %}
+        <a href="?page={{i}}"
+            {% ifequal pages i %}
+            class="end"
+            {% endifequal %}
+        >{{i}}</a>
+    {% endifequal %}
 {% endfor %}
 
 {{ object_list.count }} {% ifequal object_list.count 1 %}{{ opts_model.meta.verbose_name|escape }}{% else %}{{ opts_model.meta.verbose_name_plural }}{% endifequal %}
@@ -69,20 +69,20 @@
 
 {% block sidebar %}
 <div id="content-related">
-	<div class="module">
-		<h2>{% trans 'Actions' %}</h2>
-		<h3><a href="__clean__/"
-			onclick='
+    <div class="module">
+        <h2>{% trans 'Actions' %}</h2>
+        <h3><a href="__clean__/"
+            onclick='
 {% if not object_list %}
 return false;
 {% endif %}
 if (! window.confirm("{% trans "Do you really clean up these objects of this model?" %}"))
 {
-	return false;
+    return false;
 }
 return true;
-			'
-		>{% trans 'Remove All indexed objects' %}</a></h3>
-	</div>
+            '
+        >{% trans 'Remove All indexed objects' %}</a></h3>
+    </div>
 </div>
 {% endblock %}

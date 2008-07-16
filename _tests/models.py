@@ -2,7 +2,7 @@
 """
  Copyright 2005 Spike^ekipS <spikeekips@gmail.com>
 
-	This program is free software; you can redistribute it and/or modify
+    This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
  the Free Software Foundation; either version 2 of the License, or
  (at your option) any later version.
@@ -32,138 +32,138 @@ import lucene, core, pylucene
 from manager import Manager
 
 class document (models.Model) :
-	class Meta :
-		app_label = "tests"
-		ordering = ("id", )
+    class Meta :
+        app_label = "tests"
+        ordering = ("id", )
 
-	title	= models.CharField(max_length=300, blank=False, null=False, )
-	content	= models.TextField(blank=True, null=True, )
-	summary	= models.TextField(blank=True, null=True, )
-	time_added	= models.DateTimeField()
-	path = models.FilePathField(blank=False, null=False, )
-	email = models.EmailField(blank=True, null=True, )
+    title    = models.CharField(max_length=300, blank=False, null=False, )
+    content    = models.TextField(blank=True, null=True, )
+    summary    = models.TextField(blank=True, null=True, )
+    time_added    = models.DateTimeField()
+    path = models.FilePathField(blank=False, null=False, )
+    email = models.EmailField(blank=True, null=True, )
 
-	def __unicode__ (self) :
-		return "%s" % self.title
+    def __unicode__ (self) :
+        return "%s" % self.title
 
-	objects = models.Manager() # The default manager.
-	objects_search = Manager()
-	objects_search_global = Manager(target_models=None, )
+    objects = models.Manager() # The default manager.
+    objects_search = Manager()
+    objects_search_global = Manager(target_models=None, )
 
 class document0 (models.Model) :
-	class Meta :
-		app_label = "tests"
-		ordering = ("id", )
+    class Meta :
+        app_label = "tests"
+        ordering = ("id", )
 
-	title	= models.CharField(max_length=300, blank=False, null=False, )
-	content	= models.TextField(blank=True, null=True, )
-	summary	= models.TextField(blank=True, null=True, )
-	time_added	= models.DateTimeField()
-	path = models.FilePathField(blank=False, null=False, )
-	email = models.EmailField(blank=True, null=True, )
+    title    = models.CharField(max_length=300, blank=False, null=False, )
+    content    = models.TextField(blank=True, null=True, )
+    summary    = models.TextField(blank=True, null=True, )
+    time_added    = models.DateTimeField()
+    path = models.FilePathField(blank=False, null=False, )
+    email = models.EmailField(blank=True, null=True, )
 
-	def __unicode__ (self) :
-		return "%s" % self.title
+    def __unicode__ (self) :
+        return "%s" % self.title
 
-	objects = models.Manager() # The default manager.
-	objects_search = Manager()
-	objects_search_global = Manager(target_models=["document0", ], )
+    objects = models.Manager() # The default manager.
+    objects_search = Manager()
+    objects_search_global = Manager(target_models=["document0", ], )
 
 class document_without_index (models.Model) :
-	class Meta :
-		app_label = "tests"
-		ordering = ("id", )
+    class Meta :
+        app_label = "tests"
+        ordering = ("id", )
 
-	title	= models.CharField(max_length=300, blank=False, null=False, )
-	content	= models.TextField(blank=True, null=True, )
-	summary	= models.TextField(blank=True, null=True, )
-	time_added	= models.DateTimeField()
-	path = models.FilePathField(blank=False, null=False, )
-	email = models.EmailField(blank=True, null=True, )
+    title    = models.CharField(max_length=300, blank=False, null=False, )
+    content    = models.TextField(blank=True, null=True, )
+    summary    = models.TextField(blank=True, null=True, )
+    time_added    = models.DateTimeField()
+    path = models.FilePathField(blank=False, null=False, )
+    email = models.EmailField(blank=True, null=True, )
 
-	def __unicode__ (self) :
-		return "%s" % self.title
+    def __unicode__ (self) :
+        return "%s" % self.title
 
-	objects = models.Manager() # The default manager.
-	objects_search = Manager()
-	objects_search_global = Manager(target_models=["document0", ], )
+    objects = models.Manager() # The default manager.
+    objects_search = Manager()
+    objects_search_global = Manager(target_models=["document0", ], )
 
-	def save (self) :
-		super(document_without_index, self).save_base(cls=self)
+    def save (self) :
+        super(document_without_index, self).save_base(cls=self)
 
 class SearcherTestRunner (unittest.TextTestRunner) :
-	def run (self, test) :
-		o = super(SearcherTestRunner, self).run(test)
+    def run (self, test) :
+        o = super(SearcherTestRunner, self).run(test)
 
-		return o
+        return o
 
 def insert_documents (n, model=None) :
-	if model is None :
-		model = document
+    if model is None :
+        model = document
 
-	#print ">> Cleaning up models."
-	# attach models
+    #print ">> Cleaning up models."
+    # attach models
 
-	cursor = connection.cursor()
+    cursor = connection.cursor()
 
-	# drop table, if exists.
-	sql = "DROP TABLE %s" % model._meta.db_table
-	try :
-		cursor.execute(sql)
-	except :
-		pass
+    # drop table, if exists.
+    sql = "DROP TABLE %s" % model._meta.db_table
+    try :
+        cursor.execute(sql)
+    except :
+        pass
 
-	# create table
-	sql, params = sql_model_create(model, no_style())
-	cursor.execute(sql[0])
+    # create table
+    sql, params = sql_model_create(model, no_style())
+    cursor.execute(sql[0])
 
-	#core.register(model, )
+    #core.register(model, )
 
-	#print ">> Inserting documents"
-	d = list()
-	for i in range(n) :
-		d.append(
-			model.objects.create(
-				title=words(5, False),
-				content=paragraphs(1, False)[0][:50],
-				summary=paragraphs(1, False)[0][:50],
-				time_added=datetime.datetime.now() - datetime.timedelta(days=int(random.random() * 10)),
-				path="/home/dir.com/" + str(random.random() * 1000) + "/",
-				email="%s@%s" % (words(1, False), words(1, False))
-			)
-		)
-		#print "\t", d[-1]
+    #print ">> Inserting documents"
+    d = list()
+    for i in range(n) :
+        d.append(
+            model.objects.create(
+                title=words(5, False),
+                content=paragraphs(1, False)[0][:50],
+                summary=paragraphs(1, False)[0][:50],
+                time_added=datetime.datetime.now() - datetime.timedelta(days=int(random.random() * 10)),
+                path="/home/dir.com/" + str(random.random() * 1000) + "/",
+                email="%s@%s" % (words(1, False), words(1, False))
+            )
+        )
+        #print "\t", d[-1]
 
-	return d
+    return d
 
 def cleanup_index () :
-	try :
-		shutil.rmtree(settings.SEARCH_STORAGE_PATH)
-	except :
-		pass
+    try :
+        shutil.rmtree(settings.SEARCH_STORAGE_PATH)
+    except :
+        pass
 
-	os.makedirs(settings.SEARCH_STORAGE_PATH)
+    os.makedirs(settings.SEARCH_STORAGE_PATH)
 
-	pylucene.Indexer().clean().close()
+    pylucene.Indexer().clean().close()
 
 def cleanup_documents (model=None) :
-	if model is None :
-		model = document
+    if model is None :
+        model = document
 
-	try :
-		model.objects.all().delete()
-	except :
-		pass
+    try :
+        model.objects.all().delete()
+    except :
+        pass
 
-	# drop table, if exists.
-	sql = "DROP TABLE %s" % model._meta.db_table
-	cursor = connection.cursor()
-	try :
-		cursor.execute(sql)
-	except :
-		pass
+    # drop table, if exists.
+    sql = "DROP TABLE %s" % model._meta.db_table
+    cursor = connection.cursor()
+    try :
+        cursor.execute(sql)
+    except :
+        pass
 
-	cursor.close()
+    cursor.close()
 
 
 
