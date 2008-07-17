@@ -29,7 +29,7 @@ except ImportError :
 import sys, os, tempfile, shutil, threading, datetime, types
 from django.conf import settings
 
-import core
+import document
 
 ######################################################################
 # Constants
@@ -148,7 +148,7 @@ class IndexWriter (__LUCENE_WRITER__) :
         self.open()
         if uid :
             self.writer.updateDocument(
-                Term.new(core.FIELD_NAME_UID, uid, ),
+                Term.new(document.FIELD_NAME_UID, uid, ),
                 doc,
             )
         else :
@@ -186,7 +186,7 @@ class Searcher (__LUCENE__) :
         query = BooleanQuery()
         query.add(
             lucene.TermQuery(
-                Term.new(core.FIELD_NAME_UID, uid)
+                Term.new(document.FIELD_NAME_UID, uid)
             ),
             QUERY_BOOLEANS.get("AND"),
         )
@@ -308,7 +308,7 @@ class Reader (__LUCENE__) :
 
     def get_document (self, uid) :
         self.open()
-        dns = self.reader.termDocs(Term.new(core.FIELD_NAME_UID, uid))
+        dns = self.reader.termDocs(Term.new(document.FIELD_NAME_UID, uid))
         if not dns.next() :
             return None
 
@@ -375,107 +375,6 @@ class Query (lucene.Query) :
 
     parse = classmethod(parse)
 
-class IndexManager (object) :
-    commands = list()
-
-    def __init__ (self) :
-        self.commands = list()
-
-        self.lock = threading.Lock()
-
-    def index (self, *args, **kwargs ) :
-        self.execute("index", *args, **kwargs )
-
-    def index_update (self, *args, **kwargs ) :
-        self.execute("index_update", *args, **kwargs )
-
-    def unindex (self, *args, **kwargs ) :
-        self.execute("unindex", *args, **kwargs )
-
-    def clean (self) :
-        self.execute("clean", )
-
-    def optimize (self) :
-        self.execute("optimize", )
-
-    def func_index (self, objs) :
-        if type(objs) is not types.GeneratorType :
-            objs = iter([objs, ])
-
-        try :
-            w = IndexWriter()
-            for obj in objs :
-                w.index(create_document_from_object(obj), )
-
-            w.close()
-        except Exception, e :
-            raise
-            return False
-
-        return True
-
-    def func_index_update (self, obj) :
-        try :
-            w = IndexWriter()
-            w.index(
-                create_document_from_object(obj),
-                uid=str(core.Model.get_uid(obj, obj.pk)),
-            )
-            w.close()
-        except Exception, e :
-            raise
-            return False
-
-        return True
-
-    def func_unindex (self, obj) :
-        try :
-            w = IndexWriter()
-            w.unindex(
-                Term.new(core.FIELD_NAME_UID, str(core.Model.get_uid(obj, obj.pk)))
-            )
-            w.close()
-        except Exception, e :
-            raise
-            return False
-
-        return True
-
-    def func_unindex_by_term (self, term) :
-        try :
-            w = IndexWriter()
-            w.unindex(term)
-            w.close()
-        except Exception, e :
-            raise
-            return False
-
-        return True
-
-    def func_clean (self, ) :
-        Indexer().clean().close()
-        return True
-
-    def func_optimize (self, ) :
-        Indexer().optimize().close()
-        return True
-
-    def execute (self, command, *args, **kwargs ) :
-        if not hasattr(self, "func_%s" % command) :
-            return
-
-        self.lock.acquire()
-        try :
-            getattr(self, "func_%s" % command)(*args, **kwargs)
-        except :
-            self.lock.release()
-            raise
-        else :
-            self.lock.release()
-
-
-sys.INDEX_MANAGER = IndexManager()
-
 ######################################################################
 # Functions
 def initialize_vm () :
@@ -483,46 +382,6 @@ def initialize_vm () :
 
 def deinitialize_vm () :
     lucene.getVMEnv().detachCurrentThread()
-
-def create_document_from_object (obj) :
-    info = core.Model.get_info(obj)
-
-    doc = lucene.Document()
-    for f, i in info.get("fields").items() :
-        if not hasattr(obj, i.get("attrname")) : continue
-
-        v = core.DocumentValue.to_index(
-                i.get("type"),
-                getattr(obj, i["attrname"]),
-                func_parse=i.get("func_parse"),
-                flatten=i.get("flatten", False),
-        )
-
-        doc.add(Field.new(
-            i["name"],
-            v[0],
-            i.get("store", False),
-            i.get("tokenize", False),
-        ))
-
-        if not i.get("flatten", False) and type(v[1]) in (list, tuple, ) :
-            # index pared fragment of terms.
-            for v0 in v[1] :
-                if not v0.strip() : continue
-                doc.add(Field.new(
-                    i["name"],
-                    v0,
-                    False,
-                    False,
-                ))
-
-    # add default field
-    doc.add(Field.new(core.FIELD_NAME_UID, str(core.Model.get_uid(obj, obj.pk)), True, False,))
-    doc.add(Field.new(core.FIELD_NAME_PK, str(obj.pk), True, False,))
-    doc.add(Field.new(core.FIELD_NAME_MODEL, core.Model.get_name(obj), True, False,))
-    doc.add(Field.new(core.FIELD_NAME_UNICODE, unicode(obj), True, False,))
-
-    return doc
 
 
 """

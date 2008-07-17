@@ -11,18 +11,18 @@
 <div class="breadcrumbs">
     <a href="/admin/">{% trans "Home" %}</a> &rsaquo;
     <a href="/admin/{{opts.app_label}}/">{{ opts.verbose_name_plural|capfirst }}</a> &rsaquo;
-    <a href="./">{{opts_model.meta.verbose_name|capfirst}}({{opts_model.meta.app_label}})</a> &rsaquo;
+    <a href="./">{{opts_model.get_meta.verbose_name|capfirst}}({{opts_model.get_meta.app_label}})</a> &rsaquo;
 </div>
 {% endblock %}
 
 {% block content %}
 <div id="content-main">
 
-{% include "__search_admin_search_form.html" %}
-
 <h1>{{opts_model.model_name}}</h1>
 
 <div class="module">
+{% include "__search_admin_search_form.html" %}
+
 <!-- object list begin -->
 <table cellspacing="0">
 <thead>

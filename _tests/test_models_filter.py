@@ -30,7 +30,7 @@ class ModelFilterTestCase (unittest.TestCase) :
         self.assertEquals(o.count(), o_n.count())
         self.assertEqual(
             set([i.pk for i in o]),
-            set([i.get("__pk__") for i in o_n]),
+            set([i.pk for i in o_n]),
         )
 
     def testDocumentOfIndexedFields (self) :
@@ -44,11 +44,11 @@ class ModelFilterTestCase (unittest.TestCase) :
         o = self.from_model.all()[0]
 
         doc = self.from_indexed.get(pk=o.pk)
-        self.assertEqual(o.pk, doc.get("pk"))
-        self.assertEqual(o.content, doc.get("content"))
-        self.assertEqual(o.summary, doc.get("summary"))
-        self.assertEqual(o.path, doc.get("path"))
-        self.assertEqual(o.email, doc.get("email"))
+        self.assertEqual(o.pk, doc.pk)
+        self.assertEqual(o.content, doc.content)
+        self.assertEqual(o.summary, doc.summary)
+        self.assertEqual(o.path, doc.path)
+        self.assertEqual(o.email, doc.email)
 
     def testCompareModelWithIndexed (self) :
         self.assertEquals(self.from_model.count(), self.from_indexed.count(), )
@@ -56,13 +56,13 @@ class ModelFilterTestCase (unittest.TestCase) :
     def testfilter_all (self) :
         self.assertEquals(
             set([i.pk for i in self.from_model.all()]),
-            set([i.get("__pk__") for i in self.from_indexed.all()]),
+            set([i.pk for i in self.from_indexed.all()]),
         )
 
     def testget_object_by_pk (self) :
         o = self.from_model.all()[0]
         o_n = self.from_indexed.get(pk=o.pk)
-        self.assertEquals(o.pk, o_n.get("__pk__"))
+        self.assertEquals(o.pk, o_n.pk)
 
     # queryset methods
     def testfilter_exclude (self) :
@@ -75,8 +75,8 @@ class ModelFilterTestCase (unittest.TestCase) :
 
     def testfilter_order_by (self) :
         # ascending
-        self.assertEquals([i.title for i in self.from_model.order_by("time_added")], [i.get("title") for i in self.from_indexed.order_by("time_added")])
-        self.assertEquals([i.title for i in self.from_model.order_by("-time_added")], [i.get("title") for i in self.from_indexed.order_by("-time_added")])
+        self.assertEquals([i.title for i in self.from_model.order_by("time_added")], [i.title for i in self.from_indexed.order_by("time_added")])
+        self.assertEquals([i.title for i in self.from_model.order_by("-time_added")], [i.title for i in self.from_indexed.order_by("-time_added")])
 
     def testSlicing (self) :
         limit = self.from_indexed.count() - int(self.from_indexed.count() / 2)
@@ -86,8 +86,8 @@ class ModelFilterTestCase (unittest.TestCase) :
         self.assert_(True)
 
     def testfilter_reverse (self) :
-        o = [i.get("title") for i in self.from_indexed.order_by("id")]
-        o_n = [i.get("title") for i in self.from_indexed.order_by("title")]
+        o = [i.title for i in self.from_indexed.order_by("id")]
+        o_n = [i.title for i in self.from_indexed.order_by("title")]
 
         o.sort()
 
@@ -101,7 +101,7 @@ class ModelFilterTestCase (unittest.TestCase) :
         o = self.from_indexed.all()[0]
         o_n = self.from_indexed.values_list("title", "summary", )[0]
 
-        self.assertEquals(o.get("title"), o_n[0])
+        self.assertEquals(o.title, o_n[0])
 
     def testfilter_dates (self) :
         o_year = self.from_indexed.dates("time_added", "year")[0]
@@ -125,8 +125,8 @@ class ModelFilterTestCase (unittest.TestCase) :
         o = self.from_model.get(id=1)
         o_n = self.from_indexed.get(id=1)
 
-        self.assertEquals(o.id, o_n.get("id"))
-        self.assertEquals(o.pk, o_n.get("__pk__"))
+        self.assertEquals(o.id, o_n.pk)
+        self.assertEquals(o.pk, o_n.pk)
 
     def testfilter_in_bulk (self) :
         o = self.from_model.in_bulk([1, 2, ])
@@ -134,13 +134,13 @@ class ModelFilterTestCase (unittest.TestCase) :
 
         for k, v in o.items() :
             self.assertTrue(o_n.has_key(k))
-            self.assertEqual(o[k].title, o_n[k].get("title"))
+            self.assertEqual(o[k].title, o_n[k].title)
 
     def testfilter_latest (self) :
         o = self.from_model.latest("time_added")
         o_n = self.from_indexed.latest("time_added")
-        self.assertEqual(o.pk, o_n.get("__pk__"))
-        self.assertEqual(o.title, o_n.get("title"))
+        self.assertEqual(o.pk, o_n.pk)
+        self.assertEqual(o.title, o_n.title)
 
     def testfilter_create (self) :
         try :
@@ -208,7 +208,7 @@ class ModelFilterTestCase (unittest.TestCase) :
             path__isnull=True,
         )
 
-        self.assertTrue(False not in [i.get("title").startswith("is_null:") for i in o_n])
+        self.assertTrue(False not in [i.title.startswith("is_null:") for i in o_n])
 
     def testraw_query (self) :
         o = self.from_model.filter(pk__in=(3, 4, ))
@@ -228,7 +228,7 @@ class ModelFilterTestCase (unittest.TestCase) :
         o_n1 = self.from_indexed.raw_query("")[5:10]
 
         self.assertTrue(
-            [(i.get("__pk__"), i.get("title"), ) for i in o_n0] != [(i.get("__pk__"), i.get("title"), ) for i in o_n1]
+            [(i.pk, i.title, ) for i in o_n0] != [(i.pk, i.title, ) for i in o_n1]
         )
 
     def test_highlight (self) :
@@ -247,6 +247,7 @@ class ModelFilterTestCase (unittest.TestCase) :
         h = o_n.get_field("title").highlight(query=query)
         m = set(r.findall(h)) - set([__titles[1], ])
         self.assertTrue(len(m) < 1)
+
 
 if __name__ == "__main__" :
     from django.db import models

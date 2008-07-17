@@ -1,7 +1,7 @@
 {% load i18n %}
 
 <!-- search form begin -->
-<div id="block-search">
+<div class="toolbar">
 <form
     name="form-search-query"
     action="__search__/"
@@ -11,18 +11,19 @@
         <ul class="errorlist">
             <li>
                 {% ifequal error "parsing_error" %}
-                    Invalid query string, See
-                    <a
-                        target="_new"
-                        href="http://lucene.apache.org/java/docs/queryparsersyntax.html"
-                            >Apache Lucene - Query Parser Syntax</a>.
+                    Invalid query string.
                 {% endifequal %}
             </li>
         </ul>
     {% endif %}
-    {{form.as_p}}
+	 <label for="id_keyword"><img src="/media/img/admin/icon_searchbox.png" alt="Search" /></label>
+    {{form.query}}
+    {{form.page}}
     &nbsp;
-    <input type="submit" name="search" value="{% trans "Search" %}" />
+    <input class="submit" type="submit" name="search" value="{% trans "Search" %}" />
+	 <a
+			href="http://lucene.apache.org/java/docs/queryparsersyntax.html"
+		>Help on Lucene Query Syntax.</a>
     <div style="clear:both;"></div>
 </form>
 </div>

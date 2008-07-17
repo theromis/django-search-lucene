@@ -23,7 +23,7 @@ from django.db.models.sql.datastructures import Empty
 
 from models_sql_query import Query
 
-import core, pylucene
+import pylucene, document
 
 class QuerySet (QuerySet_django) :
     _fields = list()
@@ -78,15 +78,15 @@ class QuerySet (QuerySet_django) :
 
     def iterator (self) :
         for row in self.query.results_iter() :
-            row = core.Document(row, query=self.get_raw_query())
+            row = document.Document(row, query=self.get_raw_query())
             if self._fields :
                 if self.flat :
                     if self._kind :
-                        yield map(lambda x: row.get(x, kind=self._kind), self._fields)[0]
+                        yield map(lambda x: row.filter(x, kind=self._kind), self._fields)[0]
                     else :
-                        yield tuple(map(lambda x: row.get(x), self._fields))
+                        yield tuple(map(lambda x: getattr(row, x), self._fields))
                 else :
-                    yield dict(map(lambda x: (x, row.get(x)), self._fields))
+                    yield dict(map(lambda x: (x, getattr(row, x)), self._fields))
             else :
                 yield row
 
@@ -103,7 +103,7 @@ class QuerySet (QuerySet_django) :
         o = self.filter(**{"%s__in" % self.model._meta.pk.name: pk_list})
         r = list()
         for i in o :
-            r.append((i.get(core.FIELD_NAME_PK), i))
+            r.append((getattr(i, document.FIELD_NAME_PK), i))
 
         return dict(r)
 
@@ -118,12 +118,12 @@ class QuerySet (QuerySet_django) :
         if kwargs.has_key("pk") :
             searcher = pylucene.Searcher()
             doc = searcher.get_document_by_uid(
-                core.Model.get_uid(self.model, kwargs.get("pk"))
+                document.Model.get_uid(self.model, kwargs.get("pk"))
             )
             if doc is None :
                 raise ObjectDoesNotExist, ""
 
-            return core.Document(doc)
+            return document.Document(doc)
 
         return super(QuerySet, self).get(*args, **kwargs)
 

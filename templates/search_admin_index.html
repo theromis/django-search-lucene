@@ -18,9 +18,8 @@
 
 <div id="content-main">
 
-{% include "__search_admin_search_form.html" %}
-
 <div class="module">
+{% include "__search_admin_search_form.html" %}
 
 {% block result-list %}
 <table class="table-search" width="100%">
@@ -68,21 +67,21 @@
 </tr>
 </thead>
 <tbody>
-{% if not model_list|length %}
+{% if not shape_list|length %}
 <tr>
     <td colspan="2">
         <h3>{% trans "No models for search." %}</h3>
     </td>
 </tr>
 {% else %}
-{% for model in model_list %}
+{% for shape in shape_list %}
 <tr>
     <td>
         <a
-            href="{{model.name}}/"
-            >{{model.meta.verbose_name|capfirst}}({{model.meta.app_label}})</a>
+            href="{{shape.get_meta.model_name}}/"
+            >{{shape.get_meta.verbose_name|capfirst}}({{shape.get_meta.app_label}})</a>
     </td>
-    <td align="right">{{model.get_searcher.count}}</td>
+    <td align="right">{{shape.get_searcher.count}}</td>
 </tr>
 {% endfor %}
 {% endif %}

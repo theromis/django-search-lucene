@@ -22,7 +22,7 @@ from django.contrib.webdesign.lorem_ipsum import words, paragraphs
 from django.db.models import ObjectDoesNotExist
 
 import lucene, pylucene, core
-import _tests
+import models as models_tests
 
 class PyLuceneThreadTestCase (unittest.TestCase):
 
@@ -30,7 +30,7 @@ class PyLuceneThreadTestCase (unittest.TestCase):
         if not mainThread :
             pylucene.initialize_vm()
 
-        self.documents = list(_tests.document.objects.all())
+        self.documents = list(models_tests.document.objects.all())
         random.shuffle(self.documents)
         for o in self.documents :
             __title = str(o.pk) + " : " + o.title + str(random.random() * 1000)
@@ -50,7 +50,7 @@ class PyLuceneThreadTestCase (unittest.TestCase):
                 raise
             else :
                 try :
-                    o_n = _tests.document.objects_search.get(pk=o.pk)
+                    o_n = models_tests.document.objects_search.get(pk=o.pk)
                 except ObjectDoesNotExist :
                     pass
                 except Exception, e :
@@ -66,17 +66,17 @@ class PyLuceneThreadTestCase (unittest.TestCase):
 
 
 if __name__ == "__main__" :
-    core.register(_tests.document, )
+    core.register(models_tests.document, )
 
     settings.SEARCH_STORAGE_PATH = settings.SEARCH_STORAGE_PATH  + "_test"
     settings.SEARCH_STORAGE_TYPE = "fs"
     #settings.DEBUG = 2
 
-    _tests.cleanup_index()
-    _tests.cleanup_documents()
-    _tests.insert_documents(10)
+    models_tests.cleanup_index()
+    models_tests.cleanup_documents()
+    models_tests.insert_documents(10)
 
-    unittest.main(testRunner=_tests.SearcherTestRunner(verbosity=2))
+    unittest.main(testRunner=models_tests.SearcherTestRunner(verbosity=2))
     sys.exit()
 
 

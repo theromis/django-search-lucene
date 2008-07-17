@@ -17,19 +17,23 @@
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 """
 
-import os, unittest, pprint, sys, datetime, random, shutil
+import os, shutil, unittest, datetime, random
 
 from django.conf import settings
+from django.contrib.webdesign.lorem_ipsum import words, paragraphs
 from django.core.management.color import no_style
 from django.core.management.sql import sql_model_create, sql_reset
-from django.contrib.auth import models as models_auth
-from django.contrib.webdesign.lorem_ipsum import words, paragraphs
-from django.db import connection, models, transaction
-from django.db import models
-
-import lucene, core, pylucene
+from django.db import models, connection
 
 from manager import Manager
+
+import pylucene
+
+class SearcherTestRunner (unittest.TextTestRunner) :
+    def run (self, test) :
+        o = super(SearcherTestRunner, self).run(test)
+
+        return o
 
 class document (models.Model) :
     class Meta :
@@ -91,11 +95,34 @@ class document_without_index (models.Model) :
     def save (self) :
         super(document_without_index, self).save_base(cls=self)
 
-class SearcherTestRunner (unittest.TextTestRunner) :
-    def run (self, test) :
-        o = super(SearcherTestRunner, self).run(test)
+def cleanup_index () :
+    try :
+        shutil.rmtree(settings.SEARCH_STORAGE_PATH)
+    except :
+        pass
 
-        return o
+    os.makedirs(settings.SEARCH_STORAGE_PATH)
+
+    pylucene.Indexer().clean().close()
+
+def cleanup_documents (model=None) :
+    if model is None :
+        model = document
+
+    try :
+        model.objects.all().delete()
+    except :
+        pass
+
+    # drop table, if exists.
+    sql = "DROP TABLE %s" % model._meta.db_table
+    cursor = connection.cursor()
+    try :
+        cursor.execute(sql)
+    except :
+        pass
+
+    cursor.close()
 
 def insert_documents (n, model=None) :
     if model is None :
@@ -135,35 +162,6 @@ def insert_documents (n, model=None) :
         #print "\t", d[-1]
 
     return d
-
-def cleanup_index () :
-    try :
-        shutil.rmtree(settings.SEARCH_STORAGE_PATH)
-    except :
-        pass
-
-    os.makedirs(settings.SEARCH_STORAGE_PATH)
-
-    pylucene.Indexer().clean().close()
-
-def cleanup_documents (model=None) :
-    if model is None :
-        model = document
-
-    try :
-        model.objects.all().delete()
-    except :
-        pass
-
-    # drop table, if exists.
-    sql = "DROP TABLE %s" % model._meta.db_table
-    cursor = connection.cursor()
-    try :
-        cursor.execute(sql)
-    except :
-        pass
-
-    cursor.close()
 
 
 

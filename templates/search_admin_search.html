@@ -19,9 +19,9 @@
 
 <div id="content-main">
 
+<div class="module">
 {% include "__search_admin_search_form.html" %}
 
-<div class="module">
 <!-- object list begin -->
 
 <p id="search-raw_query">
@@ -48,8 +48,8 @@
     <td>
         <a href="/admin/{{opts.app_label}}/{{object.meta.module_name}}/{{object.pk}}/">{{object}}</a>.
 
-        {% for field in object.installed_fields %}
-            {% if field.check_highlighted %}
+        {% for field in object.get_fields %}
+            {% if field.was_highlighted %}
                 <h3
                     style="
 cursor: pointer;

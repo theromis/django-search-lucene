@@ -28,7 +28,7 @@ class ModelSearchGlobalSearcherTestCase (unittest.TestCase):
         ])
 
         o_n = set([
-            (i.meta.app_label, i.meta.object_name, i.pk, )
+            (i.shape._meta.app_label, i.shape._meta.object_name, i.pk, )
             for i in models_tests.document.objects_search_global.filter()
         ])
 

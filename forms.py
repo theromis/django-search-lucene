@@ -21,7 +21,7 @@ from django import newforms as forms
 from django.utils.translation import ugettext as _
 
 class Search (forms.Form) :
-    query   = forms.CharField(label=_("Search Query"), )
+    query   = forms.CharField(label="", )
     page    = forms.IntegerField(
         required=False,
         initial=0,

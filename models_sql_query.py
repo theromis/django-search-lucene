@@ -23,7 +23,7 @@ from django.db.models.sql import constants
 from django.db.models.sql.datastructures import Empty
 from django.db.models.sql.query import get_order_dir
 
-import lucene, core, pylucene
+import lucene, core, document, pylucene
 from models_sql_where import WhereNodeSearcher
 
 class Query (sql.Query) :
@@ -33,12 +33,14 @@ class Query (sql.Query) :
 
     def __init__ (self, model, connection, where=WhereNodeSearcher, target_models=Empty()) :
         super(Query, self).__init__(model, connection, where=WhereNodeSearcher)
+        self.where.model = self.model
         self.target_models = target_models
         self.raw_queries = list()
 
     def clone(self, klass=None, **kwargs):
         clone = super(Query, self).clone(klass=klass, **kwargs)
 
+        clone.where.model = self.model
         clone.raw_queries = self.raw_queries
         clone.target_models = self.target_models
         return clone
@@ -56,7 +58,7 @@ class Query (sql.Query) :
         self._query_cache = None
 
     def as_sql (self, with_limits=True, with_col_aliases=False):
-        self.model_info = core.Model.get_info(self.model)
+        self.shape = document.Model.get_shape(self.model)
 
         if not self._query_cache :
             _query = self.where.as_sql(pylucene.BooleanQuery(), qn=self.quote_name_unless_alias)
@@ -78,12 +80,12 @@ class Query (sql.Query) :
             elif type(self.target_models) in (list, tuple, ) and len(self.target_models) > 0 :
                 __models = self.target_models
             else :
-                __models = [self.model_info["name"], ]
+                __models = [self.shape._meta.model_name, ]
 
             if len(__models) < 2 :
                 _query.add(
                     pylucene.TermQuery(
-                        pylucene.Term.new(core.FIELD_NAME_MODEL, __models[0])
+                        pylucene.Term.new(document.FIELD_NAME_MODEL, __models[0])
                     ),
                     pylucene.QUERY_BOOLEANS.get("AND"),
                 )
@@ -92,7 +94,7 @@ class Query (sql.Query) :
                 for i in __models :
                     subquery.add(
                         pylucene.TermQuery(
-                            pylucene.Term.new(core.FIELD_NAME_MODEL, i)
+                            pylucene.Term.new(document.FIELD_NAME_MODEL, i)
                         ),
                         pylucene.QUERY_BOOLEANS.get("OR"),
                     )
@@ -103,7 +105,12 @@ class Query (sql.Query) :
         return self._query_cache
 
     def execute_sql (self, result_type=constants.MULTI) :
-        (query, ordering, ) = self.as_sql()
+        try :
+            (query, ordering, ) = self.as_sql()
+        except :
+            import traceback
+            traceback.print_exc()
+            raise
 
         try :
             self.searcher = pylucene.Searcher()
@@ -129,8 +136,8 @@ class Query (sql.Query) :
                     _f = "sort__%s" % _f
                 _sorts.append(lucene.SortField(_f, _r))
 
-            if True not in [i.startswith(core.FIELD_NAME_PK) or i.startswith("-%s" % core.FIELD_NAME_PK) for i in ordering] :
-                _sorts.append(lucene.SortField(core.FIELD_NAME_PK, _r))
+            if True not in [i.startswith(document.FIELD_NAME_PK) or i.startswith("-%s" % document.FIELD_NAME_PK) for i in ordering] :
+                _sorts.append(lucene.SortField(document.FIELD_NAME_PK, _r))
 
             return lucene.Sort(_sorts)
 

@@ -24,12 +24,12 @@ from django.shortcuts import render_to_response as render_to_response_django, ge
 from django.utils.translation import ugettext as _
 from django.views.generic.list_detail import object_list, object_detail
 
-import core, pylucene
 import models as models_search
 import forms as forms_search
 
-# to register the models for search, re-read(or first read) the all models.
-models.get_models()
+import core, pylucene, document
+# Gathering and initializing registered models.
+core.initialize_shapes()
 
 def check_auth (func) :
     def wrapper (request, **kwargs) :
@@ -91,7 +91,7 @@ def execute (request, command=None, model_name=None, ) :
         args = list()
         if command == "clean" :
             command = "unindex_by_term"
-            term = pylucene.Term.new(core.FIELD_NAME_MODEL, model_name)
+            term = pylucene.Term.new(document.FIELD_NAME_MODEL, model_name)
 
             args.append(term)
 
@@ -109,16 +109,16 @@ def index (request, *args, **kwargs) :
     if kwargs.get("redirect", None) :
         return HttpResponseRedirect(os.path.normpath(os.path.join(request.META.get("REQUEST_URI"), kwargs.get("redirect"))) + "/")
 
-    model_list = list()
+    shape_list = list()
     for k, v in sys.MODELS_REGISTERED.items() :
-        model_list.append(v)
+        shape_list.append(v)
 
     return render_to_response(
         request,
         "search_admin_index.html",
         {
             "opts": models_search.Search._meta,
-            "model_list": model_list,
+            "shape_list": shape_list,
             "reader": pylucene.Reader(),
             "form": forms_search.Search(),
         }
@@ -130,8 +130,8 @@ def model_view (request, model_name) :
     Object list of model.
     """
 
-    info = core.Model.get_info(model_name)
-    if not info :
+    shape = document.Model.get_shape(model_name)
+    if not shape :
         raise Http404
 
     try :
@@ -143,13 +143,13 @@ def model_view (request, model_name) :
 
     return object_list(
         request,
-        queryset=info.get("__searcher__").all(),
+        queryset=shape.get_searcher().all(),
         paginate_by=20,
         page=page,
         allow_empty=True,
         extra_context={
             "opts": models_search.Search._meta,
-            "opts_model": info,
+            "opts_model": shape,
             "form": forms_search.Search(),
         },
         template_name="search_admin_model.html",
@@ -161,18 +161,18 @@ def model_object_view (request, model_name, object_id) :
     Model object details
     """
 
-    info = core.Model.get_info(model_name)
-    if not info :
+    shape = document.Model.get_shape(model_name)
+    if not shape :
         raise Http404
 
     return object_detail(
         request,
-        queryset=info.get("__searcher__").all(),
+        queryset=shape.get_searcher().all(),
         object_id=object_id,
         template_name="search_admin_model_object.html",
         extra_context={
             "opts": models_search.Search._meta,
-            "opts_model": info,
+            "opts_model": shape,
         },
     )
 
@@ -183,7 +183,7 @@ class ObjectList (list) :
     def extend_by_hit (self, hits, query=None) :
         self.query = query
         self.extend(
-            [core.Document(i, query=query) for i in hits]
+            [document.Document(i, query=query) for i in hits]
         )
     def set_raw_query (self, query) :
         self.query = pylucene.parse_query(query)
@@ -218,10 +218,10 @@ def search (request, model_name=None, ) :
     error = None
     queryset = ObjectList()
     if form.is_valid() :
-        info = core.Model.get_info(model_name)
-        if info :
+        shape = document.Model.get_shape(model_name)
+        if shape :
             try :
-                queryset = info.get("__searcher__").raw_query(raw_query)
+                queryset = shape.get_searcher().raw_query(raw_query)
             except Exception, e :
                 error = "parsing_error"
         else :

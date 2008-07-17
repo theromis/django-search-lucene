@@ -10,7 +10,7 @@
 <div class="breadcrumbs">
     <a href="/admin/">{% trans "Home" %}</a> &rsaquo;
     <a href="/admin/{{opts.app_label}}/">{{ opts.verbose_name_plural|capfirst }}</a> &rsaquo;
-    <a href="/admin/{{opts.app_label}}/{{opts_model.meta.module_name}}/">{{opts_model.meta.verbose_name|capfirst}}({{opts_model.meta.app_label}})</a> &rsaquo;
+    <a href="/admin/{{opts.app_label}}/{{opts_model.get_meta.model_name}}/">{{opts_model.get_meta.verbose_name|capfirst}}({{opts_model.get_meta.app_label}})</a> &rsaquo;
     <a href="./">{{object}}</a> &rsaquo;
 </div>
 {% endblock %}
@@ -18,17 +18,19 @@
 {% block content %}
 <div id="content-main">
 
-<h1>{{opts_model.model_name}}</h1>
+<h1>{{opts_model.get_meta.model_name}}</h1>
 <div class="module">
 {% block result-list %}
 
 <table class="table-search" width="100%">
 <caption>{{object}}</caption>
-{% for field in object.installed_fields %}
+{% for field in object.get_fields %}
+	{% if field.abstract %}
+	{% else %}
 <tr>
     <th scope="row"><nobr>{% blocktrans with field.verbose_name|capfirst as name %}{{name}}{% endblocktrans %}:</nobr></th>
     <td>
-        {{field.get_value}}
+        {{field.to_model}}
         &nbsp;&rsaquo;<a href="#"
             onclick='
 var ul = document.getElementById("search-model-object-view-terms-{{field.name}}");
@@ -53,6 +55,7 @@ return false;
         </ul>
     </td>
 </tr>
+	{% endif %}
 {% endfor %}
 </table>
 

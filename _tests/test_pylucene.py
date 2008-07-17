@@ -20,6 +20,7 @@ import unittest
 from django.conf import settings
 
 import lucene, pylucene
+import models as models_tests
 
 class PyLuceneTestCase (unittest.TestCase) :
 
@@ -69,15 +70,12 @@ class PyLuceneTestCase (unittest.TestCase) :
         r.close()
 
 if __name__ == "__main__" :
-    import _tests, sys
+    import sys
 
     settings.SEARCH_STORAGE_PATH = settings.SEARCH_STORAGE_PATH  + "_test"
     settings.SEARCH_STORAGE_TYPE = "fs"
 
-    _tests.cleanup_index()
-    _tests.cleanup_documents()
-
-    unittest.main(testRunner=_tests.SearcherTestRunner(verbosity=2))
+    unittest.main(testRunner=models_tests.SearcherTestRunner(verbosity=2))
     sys.exit()
 
 """

@@ -35,12 +35,12 @@ class SignalsTestCase (unittest.TestCase):
 
         o_n = self.from_indexed.get(pk=o.pk)
 
-        self.assertEquals(o.pk, o_n.get("__pk__"))
-        self.assertEquals(o.title, o_n.get("title"))
-        self.assertEquals(o.summary, o_n.get("summary"))
+        self.assertEquals(o.pk, o_n.pk)
+        self.assertEquals(o.title, o_n.title)
+        self.assertEquals(o.summary, o_n.summary)
         self.assertEquals(
             core.DocumentValue.to_index("date",o.time_added),
-            core.DocumentValue.to_index("date", o_n.get("time_added")),
+            core.DocumentValue.to_index("date", o_n.time_added),
         )
 
     def tesTDeleteObjectFromModel (self) :
@@ -61,7 +61,7 @@ class SignalsTestCase (unittest.TestCase):
 
         o_n1 = self.from_indexed.get(pk=obj.pk)
 
-        self.assertEquals(obj.title, o_n1.get("title"))
+        self.assertEquals(obj.title, o_n1.title)
 
 if __name__ == "__main__" :
     import sys

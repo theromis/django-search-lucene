@@ -25,7 +25,7 @@ from django.db.models.sql.where import WhereNode, OR, AND
 from django.utils import tree
 from django.utils.tree import Node
 
-import lucene, core, pylucene
+import lucene, core, pylucene, document
 
 class WhereNodeSearcher (WhereNode) :
 
@@ -38,6 +38,7 @@ class WhereNodeSearcher (WhereNode) :
         if not node.children:
             return None
 
+        self.shape = document.Model.get_shape(self.model)
         subquery = None
         queries = list()
         empty = True
@@ -128,14 +129,10 @@ class WhereNodeSearcher (WhereNode) :
     def make_atom (self, child, qn) :
         table_alias, name, field, lookup_type, value_annot, value = child
 
-        try :
-            value = core.DocumentValue.to_query(core.Model.get_field_type(field), value)
-        except Exception, e :
-            raise
-
-
         subquery = None
         if type(value) in (str, unicode, None, bool, int, long, float, ) :
+            value = self.shape._meta.get_field(name).to_query(value)
+
             ######################################################################
             # value is <str>
             if lookup_type in ("search", "contains", "icontains", ) :
@@ -196,17 +193,17 @@ class WhereNodeSearcher (WhereNode) :
                 )
 
         elif type(value) in (list, tuple, ) :
+            values = [self.shape._meta.get_field(name).to_query(i) for i in value]
             if lookup_type == "range" :
-                value.sort()
-
+                values.sort()
                 subquery = lucene.RangeQuery(
-                    self.get_term(field.name, value[0]),
-                    self.get_term(field.name, value[1]),
+                    self.get_term(field.name, values[0]),
+                    self.get_term(field.name, values[1]),
                     False,
                 )
             elif lookup_type == "in" :
                 subquery = pylucene.BooleanQuery()
-                for i in value :
+                for i in values :
                     subquery.add(
                         pylucene.TermQuery(self.get_term(field.name, i)),
                         pylucene.QUERY_BOOLEANS.get("OR"),
