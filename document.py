@@ -160,6 +160,7 @@ class FieldBase (object) :
     func_get_value_from_object = None
     abstract = False
     highlighter = dict()
+    terms = None
 
     def __init__ (self, name, func_get_value_from_object=None, abstract=None, doc=None) :
         self.name = name
@@ -212,6 +213,17 @@ class FieldBase (object) :
 
     def to_query (self, v) :
         return unicode(v)
+
+    def get_terms (self) :
+        if not self.doc :
+            return list()
+
+        if not self.terms :
+            reader = pylucene.Reader()
+            self.terms = reader.get_field_terms(getattr(self.doc, FIELD_NAME_UID), self.name)
+            reader.close()
+
+        return self.terms
 
     def was_highlighted (self, query=None) :
         if query is None and self.doc :
