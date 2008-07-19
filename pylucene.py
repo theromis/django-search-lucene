@@ -76,9 +76,6 @@ class __LUCENE__ (object) :
         return lucene.IndexReader.isLocked(settings.SEARCH_STORAGE_TYPE)
 
     def open_storage (self) :
-        if settings.DEBUG > 1 :
-            print "[II] open storage: %s, %s" % (self.storage_type, self.storage_path, )
-
         if self.storage_type == "ram" :
             self.storage = lucene.RAMDirectory()
         else :
@@ -218,8 +215,9 @@ class Searcher (__LUCENE__) :
         self.open()
 
         hits = self.get_hits(query, sort=sort, slice=slice, )
-        if settings.DEBUG > 1 :
-            print "\t", hits.length(), "[II] ", query
+        if settings.DEBUG :
+            print "\tQuery: %s" % query
+            print "\tHits: %d" % (hits.length(), )
 
         n = 0
         hits_iterator = hits.iterator()

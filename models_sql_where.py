@@ -15,7 +15,7 @@
 #    along with this program; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-import datetime
+import datetime, traceback
 
 from django.conf import settings
 from django.db import models, connection
@@ -76,8 +76,7 @@ class WhereNodeSearcher (WhereNode) :
                     empty = True
                 continue
             except Exception, e :
-                if settings.DEBUG > 1 :
-                    import traceback
+                if settings.DEBUG :
                     traceback.print_exc()
                 raise
 

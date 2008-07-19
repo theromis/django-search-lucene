@@ -15,6 +15,8 @@
 #    along with this program; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+import traceback
+
 from django.conf import settings
 from django.db import connection
 from django.db.models import ObjectDoesNotExist
@@ -68,8 +70,8 @@ class QuerySet (QuerySet_django) :
         try :
             query = pylucene.Query.parse(query)
         except Exception, e:
-            if settings.DEBUG > 1 :
-                print "[EE] Error found in parsing query, %s" % e
+            if settings.DEBUG :
+                traceback.print_exc()
 
             return self
 

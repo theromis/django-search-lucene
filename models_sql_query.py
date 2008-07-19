@@ -15,7 +15,7 @@
 #    along with this program; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-import sys
+import sys, traceback
 
 from django.db import models, connection
 from django.db.models import sql, ObjectDoesNotExist
@@ -108,7 +108,6 @@ class Query (sql.Query) :
         try :
             (query, ordering, ) = self.as_sql()
         except :
-            import traceback
             traceback.print_exc()
             raise
 

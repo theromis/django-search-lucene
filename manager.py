@@ -15,7 +15,7 @@
 #    along with this program; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-import sys, new, types
+import sys, new, types, traceback
 
 from django.conf import settings
 from django.db import models
@@ -78,9 +78,6 @@ class MethodCreateIndex (object) :
     def method_create_index (self, cls) :
         objs = None
         if hasattr(cls, "to_create_index") and cls.to_create_index is None :
-            if settings.DEBUG > 1 :
-                print "[WW] just created, don't index this object."
-
             return
         elif hasattr(cls, "data_create_index") :
             objs = iter(cls.data_create_index.values())
@@ -95,8 +92,8 @@ class MethodCreateIndex (object) :
         try :
             sys.INDEX_MANAGER.index(iter(cls))
         except Exception, e :
-            if settings.DEBUG > 1 :
-                print "[EE]", e
+            if settings.DEBUG :
+                traceback.print_exc()
 
         return cls
 
