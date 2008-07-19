@@ -23,9 +23,16 @@ To run Django search with Lucene in Django, exactly thread environment, you soul
 But when the 'request_finished' was connected, some weired error occured and the entire server was corrupted.
 """
 
+import sys
+
 import signals
-signals.Signals.connect("request_started")
-#signals.Signals.connect("request_finished")
+
+if not hasattr(sys, "SIGNAL_CONNECTED") :
+    sys.SIGNAL_CONNECTED = False
+
+if not sys.SIGNAL_CONNECTED :
+    signals.Signals.connect("request_started")
+    #signals.Signals.connect("request_finished")
 
 
 """
