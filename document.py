@@ -17,8 +17,9 @@
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 """
 
-import re, lucene, sys, new, datetime, decimal, urlparse, types
+import re, lucene, sys, new, datetime, decimal, urlparse, types, traceback
 
+from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models import fields as fields_django
 from django.db.models.base import ModelBase
@@ -657,7 +658,9 @@ class Document (object) :
         try :
             return self.__unicode_orig__()
         except Exception, e :
-            print "EEEEEEEEEE,", e
+            if settings.DEBUG :
+                traceback.print_exc()
+
             return repr(self)
 
     def __get_attrname (self, name) :
