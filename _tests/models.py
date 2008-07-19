@@ -17,13 +17,22 @@
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 """
 
-import os, shutil, unittest, datetime, random
+import sys, os, shutil, unittest, datetime, random
 
 from django.conf import settings
+from django.contrib.webdesign import lorem_ipsum
 from django.contrib.webdesign.lorem_ipsum import words, paragraphs
 from django.core.management.color import no_style
 from django.core.management.sql import sql_model_create, sql_reset
 from django.db import models, connection
+
+lorem_ipsum.WORDS = [
+u"가설", u"가언적 명령", u"가언적 판단", u"간접증명법", u"간접추리",
+u"강조의 허위", u"개념", u"개념론", u"거짓말쟁이의 역설", u"격", u"메타바시스",
+u"명사", u"명사논리학", u"명제", u"명제논리학", u"명제론", u"모델이론", u"모순",
+u"모순율", u"무한소급", u"특칭명제", u"판단", u"프로토콜명제", u"허위", u"형식과학",
+u"형식논리학", u"관계", u"가설연역법", u"동의어반복", u"기호학",
+]
 
 from manager import Manager
 

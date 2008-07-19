@@ -597,9 +597,12 @@ class Model (object) :
 
 class Document (object) :
 
+    values = dict()
+
     def __init__ (self, obj, query=None) :
         self.hit = obj[0]
         self.doc = obj[1]
+        self.values = dict()
 
         if len(obj) > 2 :
             self.explanation = obj[2]
@@ -637,7 +640,7 @@ class Document (object) :
             __im_func = self.shape.__class__.__unicode__.im_func
 
         if not __im_func :
-            func_unicode = lambda x : repr(self)
+            func_unicode = lambda : repr(self)
         else :
             func_unicode = new.instancemethod(
                 new.function(
@@ -666,7 +669,10 @@ class Document (object) :
     def __getattr__ (self, name) :
         name = self.__get_attrname(name)
         if name and self.has_field(name) :
-            return self.get_field(name).to_model()
+            if not self.values.has_key(name) :
+                self.values[name] = self.get_field(name).to_model()
+
+            return self.values.get(name)
 
         return super(Document, self).__getattribute__(name)
 

@@ -17,9 +17,12 @@
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 """
 
+import sys
+
 try :
     import lucene
-    env = lucene.initVM(lucene.CLASSPATH)
+    if lucene.getVMEnv() is None :
+        lucene.initVM(lucene.CLASSPATH)
 except ImportError :
     try :
         import PyLucene as lucene
@@ -222,6 +225,7 @@ class Searcher (__LUCENE__) :
         hits_iterator = hits.iterator()
         while True :
             if not hits_iterator.hasNext() :
+                self.close()
                 break
 
             hit = hits_iterator.next()
@@ -230,17 +234,17 @@ class Searcher (__LUCENE__) :
                 continue
 
             if slice and slice.stop and n >= slice.stop :
+                self.close()
                 break
 
             hit = lucene.Hit.cast_(hit)
             try:
                 yield (hit, hit.getDocument(), self.searcher.explain(query, hit.getId(), ))
             except lucene.JavaError :
+                self.close()
                 break
 
             n += 1
-
-        self.close()
 
 class Reader (__LUCENE__) :
     def __init__ (self, storage_path=None, storage_type=None) :
@@ -382,7 +386,6 @@ def initialize_vm () :
 
 def deinitialize_vm () :
     lucene.getVMEnv().detachCurrentThread()
-
 
 """
 Description

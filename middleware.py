@@ -21,19 +21,12 @@ from django.conf import settings
 from django.template import TemplateSyntaxError
 from django.utils.translation import ugettext as _
 
-import lucene, pylucene
+import pylucene
 
 import views as views_searcher
 import models as models_search
 
 class LuceneMiddleware (object) :
-
-    def process_request (self, request, ) :
-        pylucene.initialize_vm()
-
-    def process_response (self, request, response, ) :
-        pylucene.deinitialize_vm()
-        return response
 
     def process_exception (self, request, exception, ) :
         if settings.DEBUG :

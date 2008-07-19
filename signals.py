@@ -19,18 +19,27 @@
 
 import sys
 
+from django.core import signals as signals_core
 from django.db.models import signals
 from django.dispatch import dispatcher
 
+import pylucene
+
 class Signals (object) :
 
-    def connect (self, model, signal_name) :
-        dispatcher.connect(
-            getattr(self, signal_name),
-            sender=model,
-            signal=getattr(signals, signal_name),
-            weak=False,
-        )
+    def connect (self, signal_name, model=None) :
+        if signal_name.startswith("request_") :
+            dispatcher.connect(
+                getattr(self, signal_name),
+                signal=getattr(signals_core, signal_name),
+            )
+        else :
+            dispatcher.connect(
+                getattr(self, signal_name),
+                sender=model,
+                signal=getattr(signals, signal_name),
+                weak=False,
+            )
 
     connect =     classmethod(connect)
 
@@ -53,12 +62,19 @@ class Signals (object) :
         import core
         core.register(sender)
 
-    pre_save    = classmethod(pre_save)
-    post_save    = classmethod(post_save)
-    pre_delete    = classmethod(pre_delete)
-    post_delete    = classmethod(post_delete)
-    class_prepared    = classmethod(class_prepared)
+    def request_started (self, *args, **kwargs) :
+        pylucene.initialize_vm()
 
+    def request_finished (self, *args, **kwargs) :
+        pylucene.deinitialize_vm()
+
+    pre_save            = classmethod(pre_save)
+    post_save           = classmethod(post_save)
+    pre_delete          = classmethod(pre_delete)
+    post_delete         = classmethod(post_delete)
+    class_prepared      = classmethod(class_prepared)
+    request_started     = classmethod(request_started)
+    request_finished    = classmethod(request_finished)
 
 
 """

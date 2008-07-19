@@ -177,7 +177,7 @@ def register (model) :
 
     # attach signals
     for sig in SIGNALS :
-        signals.Signals.connect(model, sig)
+        signals.Signals.connect(sig, model=model)
 
     if settings.DEBUG > 1 :
         print

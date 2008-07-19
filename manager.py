@@ -50,7 +50,7 @@ class Manager (models.Manager) :
 
         # register model to search core.
         if name != "__searcher__" :
-            signals.Signals.connect(model, "class_prepared")
+            signals.Signals.connect("class_prepared", model=model, )
 
     def get_query_set(self):
         core.initialize_shapes()
