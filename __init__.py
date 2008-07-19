@@ -25,15 +25,17 @@ But when the 'request_finished' was connected, some weired error occured and the
 
 import sys
 
-import signals
+try :
+    import signals
 
-if not hasattr(sys, "SIGNAL_CONNECTED") :
-    sys.SIGNAL_CONNECTED = False
+    if not hasattr(sys, "SIGNAL_CONNECTED") :
+        sys.SIGNAL_CONNECTED = False
 
-if not sys.SIGNAL_CONNECTED :
-    signals.Signals.connect("request_started")
-    #signals.Signals.connect("request_finished")
-
+    if not sys.SIGNAL_CONNECTED :
+        signals.Signals.connect("request_started")
+        #signals.Signals.connect("request_finished")
+except :
+    pass
 
 """
 Description
