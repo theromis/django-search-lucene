@@ -213,9 +213,6 @@ def initialize_shapes () :
             mods.append(model.__module__)
 
         # get the default model index shape model
-        if not model.__module__.startswith("killme.") :
-            continue
-
         mod = __import__(model.__module__, {}, {}, ["models", ], )
 
         for i in dir(mod) :
