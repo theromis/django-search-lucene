@@ -29,6 +29,11 @@ import lucene, core, pylucene, document
 
 class WhereNodeSearcher (WhereNode) :
 
+    model = None
+
+    def set_model (self, model) :
+        self.model = model
+
     def as_sql(self, query, node=None, qn=None) :
         if node is None:
             node = self
@@ -48,6 +53,7 @@ class WhereNodeSearcher (WhereNode) :
         for child in node.children:
             try:
                 if hasattr(child, "as_sql") :
+                    child.set_model(self.model)
                     sql = child.as_sql(query, qn=qn)
                 elif isinstance(child, tree.Node) :
                     sql = self.as_sql(query, node=child, qn=qn)

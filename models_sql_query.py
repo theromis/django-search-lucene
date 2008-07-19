@@ -33,14 +33,14 @@ class Query (sql.Query) :
 
     def __init__ (self, model, connection, where=WhereNodeSearcher, target_models=Empty()) :
         super(Query, self).__init__(model, connection, where=WhereNodeSearcher)
-        self.where.model = self.model
+        self.where.set_model(self.model)
         self.target_models = target_models
         self.raw_queries = list()
 
     def clone(self, klass=None, **kwargs):
         clone = super(Query, self).clone(klass=klass, **kwargs)
 
-        clone.where.model = self.model
+        clone.where.set_model(self.model)
         clone.raw_queries = self.raw_queries
         clone.target_models = self.target_models
         return clone
