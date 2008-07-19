@@ -16,7 +16,7 @@
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 import unittest, sys, datetime, random
-import core, pylucene
+import core, pylucene, document
 import models as models_tests
 
 class SignalsTestCase (unittest.TestCase):
@@ -24,7 +24,7 @@ class SignalsTestCase (unittest.TestCase):
         self.from_model = models_tests.document.objects
         self.from_indexed = models_tests.document.objects_search
 
-    def tesTCreateObject (self) :
+    def testCreateObject (self) :
         o = models_tests.document.objects.create(
             title=words(5, False),
             content=paragraphs(1, False)[0],
@@ -39,11 +39,11 @@ class SignalsTestCase (unittest.TestCase):
         self.assertEquals(o.title, o_n.title)
         self.assertEquals(o.summary, o_n.summary)
         self.assertEquals(
-            core.DocumentValue.to_index("date",o.time_added),
-            core.DocumentValue.to_index("date", o_n.time_added),
+            document.Fields.DateTime("date").to_index(o.time_added)[0][0],
+            document.Fields.DateTime("date").to_index(o_n.time_added)[0][0]
         )
 
-    def tesTDeleteObjectFromModel (self) :
+    def testDeleteObjectFromModel (self) :
         obj = self.from_model.all()[0]
         pk = obj.pk
 

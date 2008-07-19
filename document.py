@@ -104,6 +104,9 @@ HIGHLIGHT_TAG = ("""<span class="highlight">""", "</span>", )
 class DefaultFieldFuncGetValueFromObject (object) :
     def File (self, obj, name) :
         v = getattr(obj, name)
+        if v is None or not v.strip() :
+            return list()
+
         bb = v.split("/")
 
         r = list()
@@ -120,12 +123,16 @@ class DefaultFieldFuncGetValueFromObject (object) :
         return r
 
     def Email (self, obj, name) :
-        return getattr(obj, name).split("@")
+        v = getattr(obj, name)
+        return v and v.split("@") or list()
 
     def URL (self, obj, name) :
         """
         <scheme>://<netloc>/<path>;<params>?<query>#<fragment>
         """
+        v = getattr(obj, name)
+        if v is None or not v.strip() :
+            return list()
 
         (scheme, netloc, path, params, query, fragment, ) = urlparse.urlparse(getattr(obj, name))
 
@@ -187,6 +194,9 @@ class FieldBase (object) :
 
     def get_index_fields (self, obj) :
         for v, store, tokenize in self.to_index(self.get_value_from_object(obj, self.name), obj=obj) :
+            if v is None or not v.strip() :
+                continue
+
             yield pylucene.Field.new(
                 self.name,
                 v,
