@@ -123,7 +123,7 @@ class IndexManager (object) :
         if not hasattr(self, "func_%s" % command) :
             return
 
-        initialize_shapes()
+        initialize_index_models()
         self.lock.writer_enters()
         if settings.DEBUG > 1 :
             print "\t Active thread writers:", self.lock.active_writers
@@ -148,18 +148,18 @@ class ModelsRegisteredDict (dict) :
         self.__lock = True
 
         # merge candidates to normal(?)
-        for name, shape in self.candidates.items() :
+        for name, index_model in self.candidates.items() :
             if not self.has_key(name) :
-                self[name] = shape
+                self[name] = index_model
 
         # remove candidates
         self.candidates.clear()
 
         # add default manager
-        for name, shape in self.items() :
-            setattr(shape._meta.model, METHOD_NAME_SEARCH, manager.Manager(), )
-            shape._meta.model.__searcher__.contribute_to_class(
-                shape._meta.model,
+        for name, index_model in self.items() :
+            setattr(index_model._meta.model, METHOD_NAME_SEARCH, manager.Manager(), )
+            index_model._meta.model.__searcher__.contribute_to_class(
+                index_model._meta.model,
                 METHOD_NAME_SEARCH,
             )
 
@@ -168,10 +168,10 @@ class ModelsRegisteredDict (dict) :
     def is_lock (self) :
         return self.__lock
 
-    def add_candidate (self, name, shape, ) :
+    def add_candidate (self, name, index_model, ) :
         if self.is_lock() :
             return
-        self.candidates[name] = shape
+        self.candidates[name] = index_model
 
     def has_candidate (self, name) :
         return self.candidates.has_key(name)
@@ -183,8 +183,8 @@ def register (model) :
     if sys.MODELS_REGISTERED.has_candidate(name) :
         return
 
-    # analyze model and create new document shape
-    o = document.get_new_shape(model)()
+    # analyze model and create new document index_model
+    o = document.get_new_index_model(model)()
     sys.MODELS_REGISTERED.add_candidate(name, o)
 
     # add 'create_index' method in model's managers.
@@ -199,13 +199,13 @@ def register (model) :
         print "=================================================="
         print ">> ", model
 
-        print "From model, --------------------------------------------------"
+        print "From model, --------------------------------------"
         print "verbose_name: ", model._meta.verbose_name
         print " object_name: ", model._meta.object_name
         print " module_name: ", model._meta.module_name
         print "   app_label: ", model._meta.app_label
         print "          pk: ", model._meta.pk
-        print "From shape, --------------------------------------------------"
+        print "From index_model, --------------------------------"
         print "verbose_name: ", o._meta.verbose_name
         print " object_name: ", o._meta.object_name
         print " module_name: ", o._meta.module_name
@@ -214,28 +214,28 @@ def register (model) :
         print "          pk: ", o._meta.pk
         print "      fields: ", o._meta.fields
 
-def initialize_shapes () :
+def initialize_index_models () :
     if sys.MODELS_REGISTERED.is_lock() :
         return
 
     mods = list()
-    shapes = list()
-    # gather the document shapes
+    index_models = list()
+    # gather the document index_models
     for model in models.get_models() :
         if mods.count(model.__module__) > 0 :
             continue
         else :
             mods.append(model.__module__)
 
-        # get the default model index shape model
+        # get the default model index index_model model
         mod = __import__(model.__module__, {}, {}, ["models", ], )
 
         for i in dir(mod) :
             f = getattr(mod, i)
-            if f == document.Shape :    
+            if f == document.IndexModel :    
                 continue
             try :
-                if not issubclass(f, document.Shape) :
+                if not issubclass(f, document.IndexModel) :
                     continue
             except :
                 continue
@@ -243,19 +243,19 @@ def initialize_shapes () :
             if sys.MODELS_REGISTERED.has_key(f.__name__) :
                 continue
 
-            shapes.append(f)
+            index_models.append(f)
 
-    shapes = set(shapes)
-    for s in shapes :
-        local_attrs = document.get_method_from_shape_class(s)
+    index_models = set(index_models)
+    for s in index_models :
+        local_attrs = document.get_method_from_index_model_class(s)
 
         name = document.Model.get_name(s.Meta.model)
-        shape = document.get_new_shape(
+        index_model = document.get_new_index_model(
             s.Meta.model,
             local_attrs=local_attrs,
             meta=s.Meta,
         )()
-        sys.MODELS_REGISTERED[name] = shape
+        sys.MODELS_REGISTERED[name] = index_model
 
     sys.MODELS_REGISTERED.lock()
 

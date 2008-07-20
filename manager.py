@@ -53,7 +53,7 @@ class Manager (models.Manager) :
             signals.Signals.connect("class_prepared", model=model, )
 
     def get_query_set(self):
-        core.initialize_shapes()
+        core.initialize_index_models()
         return queryset.QuerySet(self.model, target_models=self.target_models)
 
     def raw_query (self, *args, **kwargs) :

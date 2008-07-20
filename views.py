@@ -29,7 +29,7 @@ import forms as forms_search
 
 import core, pylucene, document
 # Gathering and initializing registered models.
-core.initialize_shapes()
+core.initialize_index_models()
 
 def check_auth (func) :
     def wrapper (request, **kwargs) :
@@ -109,16 +109,16 @@ def index (request, *args, **kwargs) :
     if kwargs.get("redirect", None) :
         return HttpResponseRedirect(os.path.normpath(os.path.join(request.META.get("REQUEST_URI"), kwargs.get("redirect"))) + "/")
 
-    shape_list = list()
+    index_model_list = list()
     for k, v in sys.MODELS_REGISTERED.items() :
-        shape_list.append(v)
+        index_model_list.append(v)
 
     return render_to_response(
         request,
         "search_admin_index.html",
         {
             "opts": models_search.Search._meta,
-            "shape_list": shape_list,
+            "index_model_list": index_model_list,
             "reader": pylucene.Reader(),
             "form": forms_search.Search(),
         }
@@ -130,8 +130,8 @@ def model_view (request, model_name) :
     Object list of model.
     """
 
-    shape = document.Model.get_shape(model_name)
-    if not shape :
+    index_model = document.Model.get_index_model(model_name)
+    if not index_model :
         raise Http404
 
     try :
@@ -143,13 +143,13 @@ def model_view (request, model_name) :
 
     return object_list(
         request,
-        queryset=shape.get_searcher().all(),
+        queryset=index_model.get_searcher().all(),
         paginate_by=20,
         page=page,
         allow_empty=True,
         extra_context={
             "opts": models_search.Search._meta,
-            "opts_model": shape,
+            "opts_model": index_model,
             "form": forms_search.Search(),
         },
         template_name="search_admin_model.html",
@@ -161,18 +161,18 @@ def model_object_view (request, model_name, object_id) :
     Model object details
     """
 
-    shape = document.Model.get_shape(model_name)
-    if not shape :
+    index_model = document.Model.get_index_model(model_name)
+    if not index_model :
         raise Http404
 
     return object_detail(
         request,
-        queryset=shape.get_searcher().all(),
+        queryset=index_model.get_searcher().all(),
         object_id=object_id,
         template_name="search_admin_model_object.html",
         extra_context={
             "opts": models_search.Search._meta,
-            "opts_model": shape,
+            "opts_model": index_model,
         },
     )
 
@@ -218,10 +218,10 @@ def search (request, model_name=None, ) :
     error = None
     queryset = ObjectList()
     if form.is_valid() :
-        shape = document.Model.get_shape(model_name)
-        if shape :
+        index_model = document.Model.get_index_model(model_name)
+        if index_model :
             try :
-                queryset = shape.get_searcher().raw_query(raw_query)
+                queryset = index_model.get_searcher().raw_query(raw_query)
             except Exception, e :
                 error = "parsing_error"
         else :

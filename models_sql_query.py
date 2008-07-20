@@ -58,7 +58,7 @@ class Query (sql.Query) :
         self._query_cache = None
 
     def as_sql (self, with_limits=True, with_col_aliases=False):
-        self.shape = document.Model.get_shape(self.model)
+        self.index_model = document.Model.get_index_model(self.model)
 
         if not self._query_cache :
             _query = self.where.as_sql(pylucene.BooleanQuery(), qn=self.quote_name_unless_alias)
@@ -80,7 +80,7 @@ class Query (sql.Query) :
             elif type(self.target_models) in (list, tuple, ) and len(self.target_models) > 0 :
                 __models = self.target_models
             else :
-                __models = [self.shape._meta.model_name, ]
+                __models = [self.index_model._meta.model_name, ]
 
             if len(__models) < 2 :
                 _query.add(

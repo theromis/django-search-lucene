@@ -36,7 +36,7 @@ FIELD_NAME_MODEL   = "__model__" # model name of object
 FIELD_NAME_UNICODE = "__unicode__" # string returns of object
 
 
-RE_SHAPE_FIELD_NAME = re.compile("Field$")
+RE_INDEX_MODEL_FIELD_NAME = re.compile("Field$")
 
 FIELDS_TEXT = (
     fields_django.CharField,
@@ -457,8 +457,8 @@ class Meta (object) :
     fields = dict()
     fields_ordering = list()
 
-    def __init__ (self, shape, meta) :
-        self.shape = shape
+    def __init__ (self, index_model, meta) :
+        self.index_model = index_model
         for i in dir(meta) :
             if i.startswith("__") and i.endswith("__") :
                 continue
@@ -469,13 +469,13 @@ class Meta (object) :
             raise ImproperlyConfigured, "model must be set."
 
         self.verbose_name = get_verbose_name(
-            ".".join(shape.__class__.__name__.split(".", 1)[1:])
+            ".".join(index_model.__class__.__name__.split(".", 1)[1:])
         )
-        self.object_name = ".".join(shape.__class__.__name__.split(".", 1)[1:])
+        self.object_name = ".".join(index_model.__class__.__name__.split(".", 1)[1:])
         self.module_name = self.object_name.lower()
-        self.app_label = shape.__class__.__name__.split(".", 1)[0]
+        self.app_label = index_model.__class__.__name__.split(".", 1)[0]
 
-        self.model_name = self.shape.__class__.__name__
+        self.model_name = self.index_model.__class__.__name__
 
         pk_field = None
         self.fields = dict()
@@ -502,8 +502,8 @@ class Meta (object) :
                 fs = Fields.Sort(fm)
                 self.fields[fs.name] = fs
 
-        # overwrite the fields from model and shape
-        for i in dir(shape) :
+        # overwrite the fields from model and index_model
+        for i in dir(index_model) :
             pass # not implemented
 
         self.fields_ordering = tuple(self.fields_ordering) # make it immutable.
@@ -545,7 +545,7 @@ class Meta (object) :
         args = list()
         kwargs = dict()
 
-        name = RE_SHAPE_FIELD_NAME.sub("", field.__class__.__name__)
+        name = RE_INDEX_MODEL_FIELD_NAME.sub("", field.__class__.__name__)
         if hasattr(Fields, name) :
             _f = getattr(Fields, name)
         elif hasattr(DefaultFieldFuncGetValueFromObject, name) :
@@ -560,7 +560,7 @@ class Meta (object) :
     def get_field (self, name) :
         return self.fields.get(name, None)
 
-class Shape (object) :
+class IndexModel (object) :
 
     class Meta :
         pass
@@ -591,7 +591,7 @@ class Model (object) :
     def get_uid (self, model, pk) :
         return "%s/%s" % (self.get_name(model), pk, )
 
-    def get_shape (self, model) :
+    def get_index_model (self, model) :
         if isinstance(model, ModelBase) :
             model = Model.get_name(model)
         elif isinstance(model.__class__, ModelBase) :
@@ -602,7 +602,7 @@ class Model (object) :
     get_name    = classmethod(get_name)
     get_name_by_model_name = classmethod(get_name_by_model_name)
     get_uid     = classmethod(get_uid)
-    get_shape    = classmethod(get_shape)
+    get_index_model    = classmethod(get_index_model)
 
 class Document (object) :
 
@@ -617,12 +617,12 @@ class Document (object) :
             self.explanation = obj[2]
 
         self.query = query
-        self.shape = sys.MODELS_REGISTERED.get(self.doc.get(FIELD_NAME_MODEL), None)
-        self._meta = self.shape._meta
+        self.index_model = sys.MODELS_REGISTERED.get(self.doc.get(FIELD_NAME_MODEL), None)
+        self._meta = self.index_model._meta
 
         # attach local_attrs, except '__unicode__'.
         func_unicode = None
-        for i in self.shape.local_attrs :
+        for i in self.index_model.local_attrs :
             if i.func_name == "__unicode__" :
                 func_unicode = i
                 continue
@@ -642,23 +642,23 @@ class Document (object) :
             )
 
         # attach '__unicode__' method.
-        # If shape does not have '__unicode__' method, use the indexed field, '__unicode__'.
+        # If index_model does not have '__unicode__' method, use the indexed field, '__unicode__'.
         if func_unicode :
             __im_func = func_unicode.im_func
             func_unicode = new.instancemethod(
                 new.function(
                     __im_func.func_code,
                     __im_func.func_globals,
-                    "__unicode_shape__",
+                    "__unicode_index_model__",
                 ),
                 self,
                 self.__class__,
             )
-            self.__unicode_shape__ = func_unicode
+            self.__unicode_index_model__ = func_unicode
 
     def __unicode__ (self) :
         try :
-            return self.__unicode_shape__()
+            return self.__unicode_index_model__()
         except Exception,  e:
             return self.get_field(FIELD_NAME_UNICODE).to_model()
 
@@ -715,7 +715,7 @@ class Document (object) :
         if abstract is True, the abstracted field will be returned, vice versa.
         """
 
-        for name in self.shape._meta.fields_ordering :
+        for name in self.index_model._meta.fields_ordering :
             f = self.get_field(name)
             if abstract is not None :
                 if not abstract and f.abstract : continue
@@ -727,7 +727,7 @@ class Document (object) :
         return self.explanation
 
     def create_document_from_object (self, obj) :
-        base = Model.get_shape(obj)
+        base = Model.get_index_model(obj)
         if base is None :
             return None
 
@@ -749,19 +749,19 @@ class Document (object) :
 
 ######################################################################
 # Functions
-def get_method_from_shape_class (shape) :
+def get_method_from_index_model_class (index_model) :
     local_attrs = list()
-    for i in dir(shape) :
+    for i in dir(index_model) :
         # does not map the class internal method, except '__unicode__'
         if i != "__unicode__" and i.startswith("__") and i.endswith("__") :
             continue
 
-        if type(getattr(shape, i)) is types.MethodType :
-            local_attrs.append(getattr(shape, i))
+        if type(getattr(index_model, i)) is types.MethodType :
+            local_attrs.append(getattr(index_model, i))
 
     return local_attrs
 
-def get_new_shape (model, local_attrs=dict(), meta=None, name=None) :
+def get_new_index_model (model, local_attrs=dict(), meta=None, name=None) :
     if not meta :
         meta = new.classobj(
             "Meta",
@@ -774,7 +774,7 @@ def get_new_shape (model, local_attrs=dict(), meta=None, name=None) :
 
     return new.classobj(
         name and name or "%s" % Model.get_name(model),
-        (Shape, ),
+        (IndexModel, ),
         {
             "Meta": meta,
             "local_attrs": local_attrs,

@@ -43,7 +43,7 @@ class WhereNodeSearcher (WhereNode) :
         if not node.children:
             return None
 
-        self.shape = document.Model.get_shape(self.model)
+        self.index_model = document.Model.get_index_model(self.model)
         subquery = None
         queries = list()
         empty = True
@@ -136,7 +136,7 @@ class WhereNodeSearcher (WhereNode) :
 
         subquery = None
         if type(value) in (str, unicode, None, bool, int, long, float, ) :
-            value = self.shape._meta.get_field(name).to_query(value)
+            value = self.index_model._meta.get_field(name).to_query(value)
 
             ######################################################################
             # value is <str>
@@ -198,7 +198,7 @@ class WhereNodeSearcher (WhereNode) :
                 )
 
         elif type(value) in (list, tuple, ) :
-            values = [self.shape._meta.get_field(name).to_query(i) for i in value]
+            values = [self.index_model._meta.get_field(name).to_query(i) for i in value]
             if lookup_type == "range" :
                 values.sort()
                 subquery = lucene.RangeQuery(
