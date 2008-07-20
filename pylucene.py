@@ -217,7 +217,7 @@ class Searcher (__LUCENE__) :
         hits = self.get_hits(query, sort=sort, slice=slice, )
         if settings.DEBUG :
             print "\t=================================================="
-            print "\tQuery: %s" % query
+            print "\tQuery: %s" % [unicode(query), ]
             print "\tSort : %s" % sort
             print "\tSlice: %s" % slice
             print "\tHits : %d" % (hits.length(), )
@@ -377,7 +377,11 @@ class Query (lucene.Query) :
         # FIXME:it does not work.
         qparser.setLowercaseExpandedTerms(False)
 
-        return qparser.parse(query_string)
+        # Blank query means 'find all the document'.
+        try :
+            return qparser.parse(query_string)
+        except :
+            return lucene.MatchAllDocsQuery()
 
     parse = classmethod(parse)
 
