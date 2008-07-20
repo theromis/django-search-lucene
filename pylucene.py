@@ -217,7 +217,9 @@ class Searcher (__LUCENE__) :
         hits = self.get_hits(query, sort=sort, slice=slice, )
         if settings.DEBUG :
             print "\tQuery: %s" % query
-            print "\tHits: %d" % (hits.length(), )
+            print "\tSort : %s" % sort
+            print "\tSlice: %s" % slice
+            print "\tHits : %d" % (hits.length(), )
 
         n = 0
         hits_iterator = hits.iterator()

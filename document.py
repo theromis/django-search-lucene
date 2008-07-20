@@ -30,9 +30,10 @@ import core, pylucene
 
 ######################################################################
 # Constants
-FIELD_NAME_UID        = "__uid__" # unique id of document
-FIELD_NAME_PK        = "__pk__" # pk value of object
-FIELD_NAME_MODEL    = "__model__" # model name of object
+FIELD_NAME_UID     = "__uid__" # unique id of document
+FIELD_NAME_PK      = "__pk__" # pk value of object
+FIELD_NAME_MODEL   = "__model__" # model name of object
+FIELD_NAME_UNICODE = "__unicode__" # string returns of object
 
 
 RE_SHAPE_FIELD_NAME = re.compile("Field$")
@@ -532,6 +533,13 @@ class Meta (object) :
             abstract=True,
         )
 
+        # unicode return field
+        self.fields[FIELD_NAME_UNICODE] = Fields.Keyword(
+            FIELD_NAME_UNICODE,
+            func_get_value_from_object=lambda obj, name : unicode(obj),
+            abstract=False,
+        )
+
     def translate_model_field_to_index_field (self, field) :
         _f = None
         args = list()
@@ -634,34 +642,25 @@ class Document (object) :
             )
 
         # attach '__unicode__' method.
-        __im_func = None
+        # If shape does not have '__unicode__' method, use the indexed field, '__unicode__'.
         if func_unicode :
             __im_func = func_unicode.im_func
-        elif hasattr(self.shape.__class__, "__unicode__") :
-            __im_func = self.shape.__class__.__unicode__.im_func
-
-        if not __im_func :
-            func_unicode = lambda : repr(self)
-        else :
             func_unicode = new.instancemethod(
                 new.function(
                     __im_func.func_code,
                     __im_func.func_globals,
-                    "__unicode_orig__",
+                    "__unicode_shape__",
                 ),
                 self,
                 self.__class__,
             )
-        self.__unicode_orig__ = func_unicode
+            self.__unicode_shape__ = func_unicode
 
     def __unicode__ (self) :
         try :
-            return self.__unicode_orig__()
-        except Exception, e :
-            if settings.DEBUG :
-                traceback.print_exc()
-
-            return repr(self)
+            return self.__unicode_shape__()
+        except Exception,  e:
+            return self.get_field(FIELD_NAME_UNICODE).to_model()
 
     def __get_attrname (self, name) :
         if name == "pk" :
