@@ -15,7 +15,7 @@
 #    along with this program; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-import sys, types
+import sys, types, threading
 
 from django.conf import settings
 from django.db import models
@@ -137,13 +137,23 @@ class ModelsRegisteredDict (dict) :
     candidates = dict()
     __lock = False
 
+    def __init__ (self) :
+        self.write_lock = threading.RLock()
+
     def lock (self) :
+        if self.__lock :
+            return
+
+        self.write_lock.acquire()
         self.__lock = True
 
         # merge candidates to normal(?)
         for name, shape in self.candidates.items() :
             if not self.has_key(name) :
                 self[name] = shape
+
+        # remove candidates
+        self.candidates.clear()
 
         # add default manager
         for name, shape in self.items() :
@@ -153,10 +163,14 @@ class ModelsRegisteredDict (dict) :
                 METHOD_NAME_SEARCH,
             )
 
+        self.write_lock.release()
+
     def is_lock (self) :
         return self.__lock
 
     def add_candidate (self, name, shape, ) :
+        if self.is_lock() :
+            return
         self.candidates[name] = shape
 
     def has_candidate (self, name) :
