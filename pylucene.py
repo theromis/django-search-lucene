@@ -96,6 +96,7 @@ class __LUCENE_WRITER__ (__LUCENE__) :
         self.writer = None
 
     def get_analyzer (self) :
+        return lucene.WhitespaceAnalyzer()
         return lucene.CJKAnalyzer()
 
     def open (self, create=False, ) :
@@ -371,7 +372,7 @@ class TermQuery (lucene.PhraseQuery) :
 class Query (lucene.Query) :
 
     def parse (self, query_string) :
-        qparser = lucene.QueryParser("", lucene.StandardAnalyzer())
+        qparser = lucene.QueryParser("", lucene.WhitespaceAnalyzer())
         qparser.setDefaultOperator(QUERY_OPERATORS.get("AND"))
 
         # FIXME:it does not work.

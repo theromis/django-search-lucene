@@ -141,7 +141,7 @@ class WhereNodeSearcher (WhereNode) :
             ######################################################################
             # value is <str>
             if lookup_type in ("search", "contains", "icontains", ) :
-                subquery = pylucene.TermQuery(
+                subquery = lucene.RegexQuery(
                     self.get_term(
                         field.name,
                         "%s" % (lookup_type == "icontains" and value.lower() or value),
@@ -158,7 +158,7 @@ class WhereNodeSearcher (WhereNode) :
                 subquery = lucene.RegexQuery(
                     self.get_term(
                         field.name,
-                        "^%s" % (lookup_type == "istartswith" and value.lower() or value),
+                        "^(%s)" % (lookup_type == "istartswith" and value.lower() or value),
                     )
                 )
             elif lookup_type in ("endswith", "iendswith", ) :

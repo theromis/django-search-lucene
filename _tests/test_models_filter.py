@@ -223,6 +223,15 @@ class ModelFilterTestCase (unittest.TestCase) :
         self.assertEquals(o.count(), o_n.count())
         self.assertEquals(len(list(o)), len(list(o_n)))
 
+    def testraw_query_blank (self) :
+        o = self.from_model.all()
+        o_n = self.from_indexed.raw_query("")
+
+        self.assertEqual(
+            o.count(),
+            o_n.count(),
+        )
+
     def testraw_query_slicing_compare (self) :
         o_n0 = self.from_indexed.raw_query("")[:5]
         o_n1 = self.from_indexed.raw_query("")[5:10]
@@ -260,7 +269,7 @@ if __name__ == "__main__" :
 
     settings.SEARCH_STORAGE_PATH = settings.SEARCH_STORAGE_PATH  + "_test"
     settings.SEARCH_STORAGE_TYPE = "fs"
-    #settings.DEBUG = 2
+    settings.DEBUG = 0
 
     models_tests.cleanup_index()
     models_tests.cleanup_documents()

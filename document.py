@@ -120,7 +120,7 @@ class DefaultFieldFuncGetValueFromObject (object) :
             a = "/".join(bb[:i]) + postfix
             if len(r) > 0 and r[-1] == a :
                 continue
-            r.append(a)
+            r.append(unicode(a))
 
         return r
 
@@ -255,7 +255,7 @@ class FieldBase (object) :
             )
             __highlighter.setTextFragmenter(lucene.SimpleFragmenter(1000))
 
-            tokens = lucene.CJKAnalyzer().tokenStream(
+            tokens = lucene.WhitespaceAnalyzer().tokenStream(
                 self.name,
                 lucene.StringReader(value),
             )
@@ -344,7 +344,7 @@ class Fields (object) :
         def to_index (self, v, obj=None) :
             return [
                 (i, False, False, ) for i in v
-            ] + [(getattr(obj, self.name), True, False, ), ]
+            ] + [(unicode(getattr(obj, self.name)), True, False, ), ]
 
     class Keyword (FieldBase) :
         tokenize = False
@@ -368,11 +368,11 @@ class Fields (object) :
                 return datetime.date(_y, _m, _d)
 
         def to_index (self, v, obj=None) :
-            return ((v.strftime("%Y%m%d%H%M%S"), self.store, self.tokenize, ), )
+            return ((unicode(v.strftime("%Y%m%d%H%M%S")), self.store, self.tokenize, ), )
 
         def to_query (self, v) :
             if type(v) in (datetime.datetime, datetime.date, datetime.time, ) :
-                return v.strftime("%Y%m%d%H%M%S")
+                return unicode(v.strftime("%Y%m%d%H%M%S"))
             elif type(v) in (str, int, long, float, ) :
                 return unicode(v)
             else :
