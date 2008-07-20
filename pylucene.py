@@ -104,7 +104,7 @@ class __LUCENE_WRITER__ (__LUCENE__) :
         self.writer = lucene.IndexWriter(
             self.storage,
             self.get_analyzer(),
-            create,
+            isinstance(self.storage, lucene.RAMDirectory) and True or create,
         )
 
         return self

@@ -84,13 +84,15 @@ class MethodCreateIndex (object) :
         elif objs is None :
             if type(cls) is types.GeneratorType :
                 objs = cls
+            elif isinstance(cls, queryset_django) :
+                objs = cls
             elif type(cls) in (list, tuple, ) :
                 objs = iter(cls)
             else :
                 objs = iter([cls, ])
 
         try :
-            sys.INDEX_MANAGER.index(iter(cls))
+            sys.INDEX_MANAGER.index(iter(objs))
         except Exception, e :
             if settings.DEBUG :
                 traceback.print_exc()

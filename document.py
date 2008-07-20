@@ -728,6 +728,9 @@ class Document (object) :
 
     def create_document_from_object (self, obj) :
         base = Model.get_shape(obj)
+        if base is None :
+            return None
+
         doc = lucene.Document()
         for name, f in base._meta.fields.items() :
             for fi in f.get_index_fields(obj) :

@@ -58,7 +58,7 @@ class IndexManager (object) :
         self.execute("optimize", )
 
     def func_index (self, objs) :
-        if type(objs) is not types.GeneratorType :
+        if type(objs) not in (types.GeneratorType, iter([]).__class__, ) :
             objs = iter([objs, ])
 
         try :
