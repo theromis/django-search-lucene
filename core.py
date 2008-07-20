@@ -15,10 +15,11 @@
 #    along with this program; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-import sys, threading, types
+import sys, types
 
 from django.conf import settings
 from django.db import models
+from django.utils.synch import RWLock
 
 import pylucene, document, signals, manager
 
@@ -39,7 +40,7 @@ class IndexManager (object) :
     def __init__ (self) :
         self.commands = list()
 
-        self.lock = threading.Lock()
+        self.lock = RWLock()
 
     def index (self, *args, **kwargs ) :
         self.execute("index", *args, **kwargs )
@@ -123,14 +124,14 @@ class IndexManager (object) :
             return
 
         initialize_shapes()
-        self.lock.acquire()
+        self.lock.writer_enters()
+        if settings.DEBUG > 1 :
+            print "\t Active thread writers:", self.lock.active_writers
+
         try :
             getattr(self, "func_%s" % command)(*args, **kwargs)
-        except :
-            self.lock.release()
-            raise
-        else :
-            self.lock.release()
+        finally :
+            self.lock.writer_leaves()
 
 class ModelsRegisteredDict (dict) :
     candidates = dict()
