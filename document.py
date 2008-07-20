@@ -162,16 +162,56 @@ class DefaultFieldFuncGetValueFromObject (object) :
     URL            = classmethod(URL)
     Email          = classmethod(Email)
 
-class FieldBase (object) :
-    name = None
-    store = True
-    tokenize = True
-    func_get_value_from_object = None
-    abstract = False
-    highlighter = dict()
-    terms = None
+class __INDEXFIELDBASE__ (object) :
+    def __init__ (self, *args, **kwargs) :
+        for k, v in kwargs.items() :
+            setattr(self, k, v)
 
-    def __init__ (self, name, func_get_value_from_object=None, abstract=None, doc=None) :
+class IndexField (object) :
+    class Auto                  (__INDEXFIELDBASE__) : pass
+    class Boolean               (__INDEXFIELDBASE__) : pass
+    class Char                  (__INDEXFIELDBASE__) : pass
+    class Date                  (__INDEXFIELDBASE__) : pass
+    class DateTime              (__INDEXFIELDBASE__) : pass
+    class Decimal               (__INDEXFIELDBASE__) : pass
+    class Email                 (__INDEXFIELDBASE__) : pass
+    class File                  (__INDEXFIELDBASE__) : pass
+    class FilePath              (__INDEXFIELDBASE__) : pass
+    class Float                 (__INDEXFIELDBASE__) : pass
+    class Image                 (__INDEXFIELDBASE__) : pass
+    class Integer               (__INDEXFIELDBASE__) : pass
+    class Keyword               (__INDEXFIELDBASE__) : pass
+    class MultiKeyword          (__INDEXFIELDBASE__) : pass
+    class NullBoolean           (__INDEXFIELDBASE__) : pass
+    class PositiveInteger       (__INDEXFIELDBASE__) : pass
+    class PositiveSmallInteger  (__INDEXFIELDBASE__) : pass
+    class Slug                  (__INDEXFIELDBASE__) : pass
+    class SmallInteger          (__INDEXFIELDBASE__) : pass
+    class Text                  (__INDEXFIELDBASE__) : pass
+    class Time                  (__INDEXFIELDBASE__) : pass
+    class URL                   (__INDEXFIELDBASE__) : pass
+    class USState               (__INDEXFIELDBASE__) : pass
+    class XML                   (__INDEXFIELDBASE__) : pass
+
+class FieldBase (object) :
+    abstract                    = False
+    analyzer                    = lucene.WhitespaceAnalyzer()
+    func_get_value_from_object  = None
+    highlighter                 = dict()
+    name                        = None
+    store                       = True
+    terms                       = None
+    tokenize                    = True
+
+    def __init__ (
+                self,
+                name,
+                func_get_value_from_object=None,
+                abstract=None,
+                doc=None,
+                analyzer=None
+            ) :
+
         self.name = name
         self.verbose_name = get_verbose_name(self.name)
         self.store = self.store
@@ -187,6 +227,10 @@ class FieldBase (object) :
 
         if func_get_value_from_object :
             self.func_get_value_from_object = func_get_value_from_object
+
+        # set analyzer
+        if analyzer and pylucene.ANALYZERS.has_key(analyzer) :
+             self.analyzer = pylucene.ANALYZERS.get(analyzer)()
 
     def get_value_from_object (self, obj, name) :
         if self.func_get_value_from_object :
@@ -288,6 +332,7 @@ class FieldBase (object) :
 
 class Fields (object) :
     class Sort (object) :
+        analyzer = lucene.KeywordAnalyzer()
         def __init__ (self, field, ) :
             self.field = field
             self.name = "sort__%s" % field.name
@@ -313,24 +358,28 @@ class Fields (object) :
 
     class Integer (FieldBase) :
         tokenize = False
+        analyzer = lucene.KeywordAnalyzer()
 
         def to_model (self, v, **kwargs) :
             return int(v)
 
     class Float (FieldBase) :
         tokenize = False
+        analyzer = lucene.KeywordAnalyzer()
 
         def to_model (self, v, **kwargs) :
             return float(v)
 
     class Decimal (FieldBase) :
         tokenize = False
+        analyzer = lucene.KeywordAnalyzer()
 
         def to_model (self, v, **kwargs) :
             return decimal.Decimal(v)
 
     class Boolean (FieldBase) :
         tokenize = False
+        analyzer = lucene.KeywordAnalyzer()
 
         def to_model (self, v, **kwargs) :
             return v in ("True", ) and True or False
@@ -340,6 +389,7 @@ class Fields (object) :
 
     class MultiKeyword (FieldBase) :
         tokenize = False
+        analyzer = lucene.KeywordAnalyzer()
 
         def to_index (self, v, obj=None) :
             return [
@@ -348,9 +398,11 @@ class Fields (object) :
 
     class Keyword (FieldBase) :
         tokenize = False
+        analyzer = lucene.KeywordAnalyzer()
 
     class DateTime (FieldBase) :
         tokenize = False
+        analyzer = lucene.KeywordAnalyzer()
 
         def to_model (self, v, **kwargs) :
             d = datetime.datetime.strptime(v, "%Y%m%d%H%M%S")
@@ -380,6 +432,7 @@ class Fields (object) :
 
     class Time (FieldBase) :
         tokenize = False
+        analyzer = lucene.KeywordAnalyzer()
 
         def to_model (self, v, **kwargs) :
             return datetime.datetime.strptime(v, "%H%M%S").time()
@@ -446,27 +499,39 @@ class Fields (object) :
     class XML                  (Text)       : pass
 
 class Meta (object) :
-    model = None
-    exclude = tuple()
+    ##################################################
+    # Options
+    casecade_delete     = True
+    exclude             = tuple()
+    model               = None
+    ordering            = tuple()
+    verbose_name        = None
+    verbose_name_plural = None
+    analyzer            = lucene.WhitespaceAnalyzer()
+    field_analyzers     = dict()
+    ##################################################
 
-    verbose_name = None
-    object_name = None
-    module_name = None
-    app_label = None
+    app_label           = None
+    module_name         = None
+    object_name         = None
+
     pk = None
     fields = dict()
     fields_ordering = list()
-    ordering = tuple()
-    verbose_name = None
-    verbose_name_plural = None
 
     def __init__ (self, index_model, meta) :
-        self.index_model = index_model
-        self.index_model.local_attrs = get_method_from_index_model_class(self.index_model)
-
         # initialize
-        self.verbose_name = None
+        self.casecade_delete     = True
+        self.exclude             = tuple()
+        self.model               = None
+        self.ordering            = tuple()
+        self.verbose_name        = None
         self.verbose_name_plural = None
+        self.analyzer            = lucene.WhitespaceAnalyzer()
+        self.field_analyzers     = dict()
+
+        self.index_model = index_model
+        (self.index_model.local_attrs, __local_fields, ) = get_method_from_index_model_class(self.index_model)
 
         for i in dir(meta) :
             if i.startswith("__") and i.endswith("__") :
@@ -497,22 +562,33 @@ class Meta (object) :
                 continue
 
             (field_index, args, kwargs, ) = self.translate_model_field_to_index_field(f)
-            if not field_index :
-                continue
 
-            self.fields_ordering.append(f.name)
+            if f.name in __local_fields.keys() :
+                kk = __local_fields.get(f.name)
+                if not hasattr(Fields, kk.__class__.__name__) :
+                    continue
+
+                field_index = getattr(Fields, kk.__class__.__name__)
+                kwargs.update(kk.__dict__)
+            elif not field_index :
+                continue
 
             fm = field_index(f.name, *args, **kwargs)
             self.fields[f.name] = fm
+
             if self.model._meta.pk.name == f.name :
                 pk_field = fm
                 self.pk = fm
+
+            self.fields_ordering.append(f.name)
+            self.field_analyzers[f.name] = fm.analyzer
 
             # Add sort field
             # For searching performance and reduce the index db size, TextField does not include in sort field,
             if f.__class__ not in FIELDS_SKIP_TO_SORT :
                 fs = Fields.Sort(fm)
                 self.fields[fs.name] = fs
+                self.field_analyzers[fs.name] = fs.analyzer
 
         # overwrite the fields from model and index_model
         for i in dir(index_model) :
@@ -764,6 +840,7 @@ class Document (object) :
 # Functions
 def get_method_from_index_model_class (index_model) :
     local_attrs = list()
+    fields = dict()
     for i in dir(index_model) :
         # does not map the class internal method, except '__unicode__'
         if i != "__unicode__" and i.startswith("__") and i.endswith("__") :
@@ -771,8 +848,10 @@ def get_method_from_index_model_class (index_model) :
 
         if type(getattr(index_model, i)) is types.MethodType :
             local_attrs.append(getattr(index_model, i))
+        elif isinstance(getattr(index_model, i), __INDEXFIELDBASE__) :
+            fields[i] = getattr(index_model, i)
 
-    return local_attrs
+    return (local_attrs, fields, )
 
 def get_new_index_model (model, local_attrs=dict(), meta=None, name=None) :
     if not meta :

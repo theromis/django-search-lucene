@@ -63,12 +63,12 @@ class IndexManager (object) :
     def optimize (self) :
         self.execute("optimize", )
 
-    def func_index (self, objs) :
+    def func_index (self, objs, **kwargs) :
         if type(objs) not in (types.GeneratorType, iter([]).__class__, ) :
             objs = iter([objs, ])
 
         try :
-            w = pylucene.IndexWriter()
+            w = pylucene.IndexWriter(**kwargs)
             for obj in objs :
                 w.index(document.Document.create_document_from_object(obj), )
 
@@ -79,9 +79,9 @@ class IndexManager (object) :
 
         return True
 
-    def func_index_update (self, obj) :
+    def func_index_update (self, obj, **kwargs) :
         try :
-            w = pylucene.IndexWriter()
+            w = pylucene.IndexWriter(**kwargs)
             w.index(
                 document.Document.create_document_from_object(obj),
                 uid=str(document.Model.get_uid(obj, obj.pk)),
@@ -93,9 +93,9 @@ class IndexManager (object) :
 
         return True
 
-    def func_unindex (self, obj) :
+    def func_unindex (self, obj, **kwargs) :
         try :
-            w = pylucene.IndexWriter()
+            w = pylucene.IndexWriter(**kwargs)
             w.unindex(
                 pylucene.Term.new(document.FIELD_NAME_UID, str(document.Model.get_uid(obj, obj.pk)))
             )
@@ -106,9 +106,9 @@ class IndexManager (object) :
 
         return True
 
-    def func_unindex_by_term (self, term) :
+    def func_unindex_by_term (self, term, **kwargs) :
         try :
-            w = pylucene.IndexWriter()
+            w = pylucene.IndexWriter(**kwargs)
             w.unindex(term)
             w.close()
         except Exception, e :

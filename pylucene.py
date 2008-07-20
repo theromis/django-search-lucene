@@ -51,6 +51,24 @@ QUERY_OPERATORS = {
 
 MAXINT = int(2**31-1)
 
+ANALYZERS = {
+    "Brazilian"      : lucene.BrazilianAnalyzer,
+    "Chinese"        : lucene.ChineseAnalyzer,
+    "CJK"            : lucene.CJKAnalyzer,
+    "Czech"          : lucene.CzechAnalyzer,
+    "Dutch"          : lucene.DutchAnalyzer,
+    "French"         : lucene.FrenchAnalyzer,
+    "German"         : lucene.GermanAnalyzer,
+    "Greek"          : lucene.GreekAnalyzer,
+    "Keyword"        : lucene.KeywordAnalyzer,
+    "Russian"        : lucene.RussianAnalyzer,
+    "Simple"         : lucene.SimpleAnalyzer,
+    "Snowball"       : lucene.SnowballAnalyzer,
+    "Standard"       : lucene.StandardAnalyzer,
+    "Stop"           : lucene.StopAnalyzer,
+    "Thai"           : lucene.ThaiAnalyzer,
+    "Whitespace"     : lucene.WhitespaceAnalyzer,
+}
 
 ######################################################################
 # Exceptions
@@ -89,21 +107,41 @@ class __LUCENE__ (object) :
             self.storage = None
 
 class __LUCENE_WRITER__ (__LUCENE__) :
-    def __init__ (self, storage_path=None, storage_type=None) :
+    def __init__ (
+                self,
+                storage_path=None,
+                storage_type=None,
+                analyzer=None,
+                field_analyzers=dict()
+            ) :
         super(__LUCENE_WRITER__, self).__init__(
             storage_path=storage_path, storage_type=storage_type
         )
+        self.analyzer = analyzer
+        self.field_analyzers = field_analyzers
         self.writer = None
 
     def get_analyzer (self) :
-        return lucene.WhitespaceAnalyzer()
-        return lucene.CJKAnalyzer()
+        if self.analyzer :
+            default_analyzer = self.analyzer
+        else :
+            default_analyzer = lucene.WhitespaceAnalyzer()
 
-    def open (self, create=False, ) :
+        analyzer = lucene.PerFieldAnalyzerWrapper(default_analyzer)
+        for field_name, a in self.field_analyzers.items() :
+            analyzer.addAnalyzer(field_name, a)
+
+        return analyzer
+
+    def open (self, create=False, field_analyzers=dict()) :
         self.open_storage()
+        analyzer = self.get_analyzer()
+        for field_name, a in field_analyzers.items() :
+            analyzer.addAnalyzer(field_name, a)
+
         self.writer = lucene.IndexWriter(
             self.storage,
-            self.get_analyzer(),
+            analyzer,
             isinstance(self.storage, lucene.RAMDirectory) and True or create,
         )
 
@@ -144,7 +182,7 @@ class IndexWriter (__LUCENE_WRITER__) :
 
     unindex = unindex_by_term
 
-    def index (self, doc, uid=None, ) :
+    def index (self, doc, uid=None) :
         # check whether index db is locked.
         self.open()
         if uid :
@@ -220,6 +258,7 @@ class Searcher (__LUCENE__) :
 
         hits = self.get_hits(query, sort=sort, slice=slice, )
         if settings.DEBUG :
+            print
             print "\t=================================================="
             print "\tQuery: %s" % [unicode(query), ]
             print "\tSort : %s" % sort

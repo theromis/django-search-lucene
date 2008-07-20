@@ -23,7 +23,7 @@ from django.core import signals as signals_core
 from django.db.models import signals
 from django.dispatch import dispatcher
 
-import pylucene
+import core, pylucene, document
 
 class Signals (object) :
 
@@ -47,16 +47,29 @@ class Signals (object) :
         pass
 
     def post_save (self, instance=None, sender=None, created=False, **kwargs) :
+        core.initialize_index_models()
+        index_model = sys.MODELS_REGISTERED.get(document.Model.get_name(instance), None)
         if created :
-            sys.INDEX_MANAGER.index(instance)
+            sys.INDEX_MANAGER.index(
+                instance,
+                analyzer=index_model._meta.analyzer,
+                field_analyzers=index_model._meta.field_analyzers,
+            )
         else :
-            sys.INDEX_MANAGER.index_update(instance)
+            sys.INDEX_MANAGER.index_update(
+                instance,
+                analyzer=index_model._meta.analyzer, 
+                field_analyzers=index_model._meta.field_analyzers,
+            )
 
     def pre_delete (self, instance=None, sender=None, **kwargs) :
         pass
 
     def post_delete (self, instance=None, sender=None, **kwargs) :
-        sys.INDEX_MANAGER.unindex(instance)
+        index_model = sys.MODELS_REGISTERED.get(document.Model.get_name(instance), None)
+
+        if index_model._meta.casecade_delete :
+            sys.INDEX_MANAGER.unindex(instance)
 
     def class_prepared (self, sender=None, *args, **kwargs) :
         import core
