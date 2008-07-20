@@ -119,20 +119,30 @@ class Query (sql.Query) :
         return [self.searcher.search(query, ordering, slice=slice(self.low_mark, self.high_mark)), ]
 
     def get_ordering (self) :
-        ordering = self.order_by or self.model._meta.ordering
-        if len(ordering) < 1 :
+        if self.order_by :
+            ordering = self.order_by
+        elif not self.index_model._meta.ordering :
+            ordering = self.model._meta.ordering
+        else :
+            ordering = self.index_model._meta.ordering
+
+        if len(ordering) < 1 : # If no ordering, use relevance sort.
             return None
         else :
             _sorts = list()
             for i in ordering :
                 _r = False
                 _f = i
+                if i[0] == "?" :
+                    return core.SORT_RANDOM
+
                 if i[0].startswith("-") :
                     _r = True
                     _f = i[1:]
 
                 if not _f.startswith("__") :
                     _f = "sort__%s" % _f
+
                 _sorts.append(lucene.SortField(_f, _r))
 
             if True not in [i.startswith(document.FIELD_NAME_PK) or i.startswith("-%s" % document.FIELD_NAME_PK) for i in ordering] :

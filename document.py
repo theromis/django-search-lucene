@@ -456,9 +456,18 @@ class Meta (object) :
     pk = None
     fields = dict()
     fields_ordering = list()
+    ordering = tuple()
+    verbose_name = None
+    verbose_name_plural = None
 
     def __init__ (self, index_model, meta) :
         self.index_model = index_model
+        self.index_model.local_attrs = get_method_from_index_model_class(self.index_model)
+
+        # initialize
+        self.verbose_name = None
+        self.verbose_name_plural = None
+
         for i in dir(meta) :
             if i.startswith("__") and i.endswith("__") :
                 continue
@@ -468,14 +477,17 @@ class Meta (object) :
         if not hasattr(self, "model") :
             raise ImproperlyConfigured, "model must be set."
 
-        self.verbose_name = get_verbose_name(
-            ".".join(index_model.__class__.__name__.split(".", 1)[1:])
-        )
-        self.object_name = ".".join(index_model.__class__.__name__.split(".", 1)[1:])
-        self.module_name = self.object_name.lower()
-        self.app_label = index_model.__class__.__name__.split(".", 1)[0]
+        if not self.verbose_name :
+            self.verbose_name = self.model._meta.verbose_name
 
-        self.model_name = self.index_model.__class__.__name__
+        if not self.verbose_name_plural :
+            self.verbose_name_plural = self.model._meta.verbose_name_plural
+
+        self.object_name = self.model._meta.object_name
+        self.module_name = self.model._meta.module_name
+        self.app_label = self.model._meta.app_label
+
+        self.model_name = "%s.%s" % (self.app_label, self.object_name, )
 
         pk_field = None
         self.fields = dict()
@@ -561,12 +573,13 @@ class Meta (object) :
         return self.fields.get(name, None)
 
 class IndexModel (object) :
-
     class Meta :
         pass
 
     def __init__ (self) :
+        self.local_attrs = list()
         self._meta = Meta(self, self.Meta())
+        self.meta = self._meta
 
     def get_meta (self) :
         """
@@ -657,9 +670,9 @@ class Document (object) :
             self.__unicode_index_model__ = func_unicode
 
     def __unicode__ (self) :
-        try :
+        if hasattr(self, "__unicode_index_model__") :
             return self.__unicode_index_model__()
-        except Exception,  e:
+        else :
             return self.get_field(FIELD_NAME_UNICODE).to_model()
 
     def __get_attrname (self, name) :

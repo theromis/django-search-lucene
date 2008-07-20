@@ -17,7 +17,7 @@
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 """
 
-import sys
+import sys, random
 
 try :
     import lucene
@@ -32,7 +32,7 @@ except ImportError :
 import sys, datetime
 from django.conf import settings
 
-import document
+import core, document
 
 ######################################################################
 # Constants
@@ -205,6 +205,9 @@ class Searcher (__LUCENE__) :
             _open_searcher = True
             self.open()
 
+        if sort == core.SORT_RANDOM :
+            sort = lucene.Sort.RELEVANCE
+
         try :
             hits = self.searcher.search(query, sort)
         except SystemError :
@@ -224,30 +227,55 @@ class Searcher (__LUCENE__) :
             print "\tHits : %d" % (hits.length(), )
             print
 
-        n = 0
-        hits_iterator = hits.iterator()
-        while True :
-            if not hits_iterator.hasNext() :
-                self.close()
-                break
+        if sort == core.SORT_RANDOM : # random sort
+            l = range(hits.length())
+            random.shuffle(l)
 
-            hit = hits_iterator.next()
-            if slice and slice.start and n < slice.start :
+            amount = None
+            if slice and slice.stop and slice.start :
+                amount = int((slice.stop - slice.start) / (slice.step and slice.step or 1))
+
+            hits_iterator = hits.iterator()
+            r = dict()
+            n = 0
+            while True :
+                if (amount and n > amount) or not hits_iterator.hasNext() :
+                    self.close()
+                    break
+
+                if n in l :
+                    hit = lucene.Hit.cast_(hits_iterator.next())
+                    r[n] = (hit, hit.getDocument(), self.searcher.explain(query, hit.getId(), ))
+
                 n += 1
-                continue
 
-            if slice and slice.stop and n >= slice.stop :
-                self.close()
-                break
+            for i in l :
+                yield r[i]
+        else :
+            n = 0
+            hits_iterator = hits.iterator()
+            while True :
+                if not hits_iterator.hasNext() :
+                    self.close()
+                    break
 
-            hit = lucene.Hit.cast_(hit)
-            try:
-                yield (hit, hit.getDocument(), self.searcher.explain(query, hit.getId(), ))
-            except lucene.JavaError :
-                self.close()
-                break
+                hit = hits_iterator.next()
+                if slice and slice.start and n < slice.start :
+                    n += 1
+                    continue
 
-            n += 1
+                if slice and slice.stop and n >= slice.stop :
+                    self.close()
+                    break
+
+                hit = lucene.Hit.cast_(hit)
+                try:
+                    yield (hit, hit.getDocument(), self.searcher.explain(query, hit.getId(), ))
+                except lucene.JavaError :
+                    self.close()
+                    break
+
+                n += 1
 
 class Reader (__LUCENE__) :
     def __init__ (self, storage_path=None, storage_type=None) :

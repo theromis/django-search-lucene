@@ -27,6 +27,12 @@ import pylucene, document, signals, manager
 ######################################################################
 # Constants
 METHOD_NAME_SEARCH = "__searcher__"
+class CLASS_SORT_RANDOM (object) :
+    def __repr__ (self) :
+        return "\"sort:random\""
+
+SORT_RANDOM = CLASS_SORT_RANDOM()
+
 SIGNALS = (
     "post_save",
     "post_delete",
@@ -140,6 +146,9 @@ class ModelsRegisteredDict (dict) :
     def __init__ (self) :
         self.write_lock = threading.RLock()
 
+    def add (self, index_model) :
+        self[document.Model.get_name(index_model.Meta.model)] = index_model()
+
     def lock (self) :
         if self.__lock :
             return
@@ -247,12 +256,9 @@ def initialize_index_models () :
 
     index_models = set(index_models)
     for s in index_models :
-        local_attrs = document.get_method_from_index_model_class(s)
-
         name = document.Model.get_name(s.Meta.model)
         index_model = document.get_new_index_model(
             s.Meta.model,
-            local_attrs=local_attrs,
             meta=s.Meta,
         )()
         sys.MODELS_REGISTERED[name] = index_model

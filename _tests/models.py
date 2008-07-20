@@ -47,7 +47,7 @@ class SearcherTestRunner (unittest.TextTestRunner) :
 class document (models.Model) :
     class Meta :
         app_label = "tests"
-        ordering = ("id", )
+        ordering = ("-id", )
 
     title    = models.CharField(max_length=300, blank=False, null=False, )
     content    = models.TextField(blank=True, null=True, )
