@@ -15,7 +15,7 @@
 #    along with this program; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-import sqlite3, time, threading, datetime, random, unittest
+import sys, sqlite3, time, threading, datetime, random, unittest
 
 from django.conf import settings
 from django.contrib.webdesign.lorem_ipsum import words, paragraphs
@@ -26,7 +26,29 @@ import models as models_tests
 
 class PyLuceneThreadTestCase (unittest.TestCase):
 
-    def update_document (self, mainThread=False, ) :
+    def update_document_without_save (self, mainThread=False, ) :
+        if not mainThread :
+            pylucene.initialize_vm()
+
+        self.documents = list(models_tests.document.objects.all())
+        random.shuffle(self.documents)
+        for o in self.documents :
+            __title = str(o.pk) + " : " + o.title + str(random.random() * 1000)
+            __summary = o.summary + str(random.random() * 1000)
+
+            o.title = __title
+            o.summary = __summary
+
+            sys.INDEX_MANAGER.execute("index_update", o)
+
+            o_n = models_tests.document.objects_search.get(pk=o.pk)
+            self.assertEqual(o.title, o_n.title, )
+            self.assertEqual(o.summary, o_n.summary, )
+
+    def update_document_using_save (self, mainThread=False, ) :
+        """
+        In SQLite, there will be a thread-lock problems.
+        """
         if not mainThread :
             pylucene.initialize_vm()
 
@@ -59,7 +81,7 @@ class PyLuceneThreadTestCase (unittest.TestCase):
     def test_thread(self):
         threads = []
         for i in xrange(30) :
-            threads.append(threading.Thread(target=self.update_document))
+            threads.append(threading.Thread(target=self.update_document_without_save))
 
         [thread.start() for thread in threads]
         [thread.join() for thread in threads]

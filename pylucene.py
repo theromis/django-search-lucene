@@ -29,7 +29,7 @@ except ImportError :
     except :
         raise ImportError, "Install PyLucene module. Visit http://pylucene.osafoundation.org/."
 
-import sys, os, tempfile, shutil, threading, datetime, types
+import sys, datetime
 from django.conf import settings
 
 import document
@@ -216,10 +216,12 @@ class Searcher (__LUCENE__) :
 
         hits = self.get_hits(query, sort=sort, slice=slice, )
         if settings.DEBUG :
+            print "\t=================================================="
             print "\tQuery: %s" % query
             print "\tSort : %s" % sort
             print "\tSlice: %s" % slice
             print "\tHits : %d" % (hits.length(), )
+            print
 
         n = 0
         hits_iterator = hits.iterator()
