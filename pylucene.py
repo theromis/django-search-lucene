@@ -17,62 +17,13 @@
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 """
 
-import sys, random
+import sys, random, datetime
 
-try :
-    import lucene
-    if lucene.getVMEnv() is None :
-        lucene.initVM(lucene.CLASSPATH)
-except ImportError :
-    try :
-        import PyLucene as lucene
-    except :
-        raise ImportError, "Install PyLucene module. Visit http://pylucene.osafoundation.org/."
-
-import sys, datetime
 from django.conf import settings
 
-import core, document
+import constant
 
-######################################################################
-# Constants
-QUERY_BOOLEANS = {
-    "AND"    : lucene.BooleanClause.Occur.MUST,
-    "OR"    : lucene.BooleanClause.Occur.SHOULD,
-    "NOT"    : lucene.BooleanClause.Occur.MUST_NOT,
-    True    : lucene.BooleanClause.Occur.MUST_NOT,
-    False    : lucene.BooleanClause.Occur.MUST,
-}
-
-QUERY_OPERATORS = {
-    "AND": lucene.QueryParser.Operator.AND,
-    "OR" : lucene.QueryParser.Operator.OR,
-}
-
-MAXINT = int(2**31-1)
-
-ANALYZERS = {
-    "Brazilian"      : lucene.BrazilianAnalyzer,
-    "Chinese"        : lucene.ChineseAnalyzer,
-    "CJK"            : lucene.CJKAnalyzer,
-    "Czech"          : lucene.CzechAnalyzer,
-    "Dutch"          : lucene.DutchAnalyzer,
-    "French"         : lucene.FrenchAnalyzer,
-    "German"         : lucene.GermanAnalyzer,
-    "Greek"          : lucene.GreekAnalyzer,
-    "Keyword"        : lucene.KeywordAnalyzer,
-    "Russian"        : lucene.RussianAnalyzer,
-    "Simple"         : lucene.SimpleAnalyzer,
-    "Snowball"       : lucene.SnowballAnalyzer,
-    "Standard"       : lucene.StandardAnalyzer,
-    "Stop"           : lucene.StopAnalyzer,
-    "Thai"           : lucene.ThaiAnalyzer,
-    "Whitespace"     : lucene.WhitespaceAnalyzer,
-}
-
-######################################################################
-# Exceptions
-class StorageException (Exception) : pass
+lucene = constant.import_lucene()
 
 ######################################################################
 # Classes
@@ -187,7 +138,7 @@ class IndexWriter (__LUCENE_WRITER__) :
         self.open()
         if uid :
             self.writer.updateDocument(
-                Term.new(document.FIELD_NAME_UID, uid, ),
+                Term.new(constant.FIELD_NAME_UID, uid, ),
                 doc,
             )
         else :
@@ -225,9 +176,9 @@ class Searcher (__LUCENE__) :
         query = BooleanQuery()
         query.add(
             lucene.TermQuery(
-                Term.new(document.FIELD_NAME_UID, uid)
+                Term.new(constant.FIELD_NAME_UID, uid)
             ),
-            QUERY_BOOLEANS.get("AND"),
+            constant.QUERY_BOOLEANS.get("AND"),
         )
 
         try :
@@ -243,7 +194,7 @@ class Searcher (__LUCENE__) :
             _open_searcher = True
             self.open()
 
-        if sort == core.SORT_RANDOM :
+        if sort == constant.SORT_RANDOM :
             sort = lucene.Sort.RELEVANCE
 
         try :
@@ -266,7 +217,7 @@ class Searcher (__LUCENE__) :
             print "\tHits : %d" % (hits.length(), )
             print
 
-        if sort == core.SORT_RANDOM : # random sort
+        if sort == constant.SORT_RANDOM : # random sort
             l = range(hits.length())
             random.shuffle(l)
 
@@ -353,7 +304,7 @@ class Reader (__LUCENE__) :
 
                 return self.num_docs_cache
         except lucene.JavaError, e :
-            raise StorageException, e
+            raise constant.StorageException, e
 
     def get_version (self) :
         self.open_storage()
@@ -375,14 +326,14 @@ class Reader (__LUCENE__) :
                 lucene.IndexReader.lastModified(self.storage) / 1000
             )
         except lucene.JavaError, e :
-            raise StorageException, e
+            raise constant.StorageException, e
 
         self.close_storage()
         return t
 
     def get_document (self, uid) :
         self.open()
-        dns = self.reader.termDocs(Term.new(document.FIELD_NAME_UID, uid))
+        dns = self.reader.termDocs(Term.new(constant.FIELD_NAME_UID, uid))
         if not dns.next() :
             return None
 
@@ -424,10 +375,13 @@ class Field (object) :
 
     new        = classmethod(new)
 
+RegexQuery  = lucene.RegexQuery
+RangeQuery  = lucene.RangeQuery
+
 class BooleanQuery (lucene.BooleanQuery) :
     def __init__ (self) :
         super(BooleanQuery, self).__init__()
-        self.setMaxClauseCount(MAXINT)
+        self.setMaxClauseCount(constant.MAXINT)
 
 class TermQuery (lucene.PhraseQuery) :
     def __init__ (self, term=None) :
@@ -440,7 +394,7 @@ class Query (lucene.Query) :
 
     def parse (self, query_string) :
         qparser = lucene.QueryParser("", lucene.WhitespaceAnalyzer())
-        qparser.setDefaultOperator(QUERY_OPERATORS.get("AND"))
+        qparser.setDefaultOperator(constant.QUERY_OPERATORS.get("AND"))
 
         # FIXME:it does not work.
         qparser.setLowercaseExpandedTerms(False)

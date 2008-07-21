@@ -80,19 +80,6 @@ if __name__ == "__main__" :
     settings.SEARCH_STORAGE_TYPE = "fs"
     #settings.DEBUG = 2
 
-    # set index model
-    class documentShape (document.IndexModel) :
-        class Meta :
-            model = models_tests.document
-            ordering = ("-id", )
-
-        title    = document.IndexField.Char(analyzer="Brazilian", )
-
-        def __unicode__ (self) :
-            return "%s" % self.email
-
-    sys.MODELS_REGISTERED.add(documentShape)
-
     models_tests.cleanup_index()
     models_tests.cleanup_documents()
     models_tests.insert_documents(10)

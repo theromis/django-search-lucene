@@ -25,9 +25,9 @@ from django.db.models.sql.where import WhereNode, OR, AND
 from django.utils import tree
 from django.utils.tree import Node
 
-import lucene, core, pylucene, document
+import pylucene, utils
 
-class WhereNodeSearcher (WhereNode) :
+class WhereNode (WhereNode) :
 
     model = None
 
@@ -43,7 +43,7 @@ class WhereNodeSearcher (WhereNode) :
         if not node.children:
             return None
 
-        self.index_model = document.Model.get_index_model(self.model)
+        self.index_model = utils.Model.get_index_model(self.model)
         subquery = None
         queries = list()
         empty = True
@@ -109,7 +109,7 @@ class WhereNodeSearcher (WhereNode) :
         return query
 
     def get_term (self, field, value) :
-        return lucene.Term(field, value)
+        return pylucene.Term.new(field, value)
 
     def add(self, data, connector):
         if not isinstance(data, (list, tuple)):
@@ -141,41 +141,41 @@ class WhereNodeSearcher (WhereNode) :
             ######################################################################
             # value is <str>
             if lookup_type in ("search", "contains", "icontains", ) :
-                subquery = lucene.RegexQuery(
+                subquery = pylucene.RegexQuery(
                     self.get_term(
                         field.name,
                         "%s" % (lookup_type == "icontains" and value.lower() or value),
                     )
                 )
             elif lookup_type in ("regex", "iregex", ) :
-                subquery = lucene.RegexQuery(
+                subquery = pylucene.RegexQuery(
                     self.get_term(
                         field.name,
                         lookup_type == "iregex" and value.lower() or value
                     )
                 )
             elif lookup_type in ("startswith", "istartswith", ) :
-                subquery = lucene.RegexQuery(
+                subquery = pylucene.RegexQuery(
                     self.get_term(
                         field.name,
                         "^(%s)" % (lookup_type == "istartswith" and value.lower() or value),
                     )
                 )
             elif lookup_type in ("endswith", "iendswith", ) :
-                subquery = lucene.RegexQuery(
+                subquery = pylucene.RegexQuery(
                     self.get_term(
                         field.name,
                         "%s$" % (lookup_type == "iendswith" and value.lower() or value),
                     )
                 )
             elif lookup_type in ("lt", "lte", ) :
-                subquery = lucene.RangeQuery(
+                subquery = pylucene.RangeQuery(
                     None,
                     self.get_term(field.name, value),
                     False,
                 )
             elif lookup_type in ("gt", "gte", ) :
-                subquery = lucene.RangeQuery(
+                subquery = pylucene.RangeQuery(
                     self.get_term(field.name, value),
                     None,
                     False,
@@ -184,16 +184,16 @@ class WhereNodeSearcher (WhereNode) :
                 value = lookup_type == "iexact" and value.lower() or value
                 subquery = pylucene.TermQuery(self.get_term(field.name, value))
             elif lookup_type == "year" :
-                subquery = lucene.RegexQuery(
+                subquery = pylucene.RegexQuery(
                     self.get_term(field.name, "^%s" % value),
                 )
             elif lookup_type in ("month", "day") :
                 value = "%02d" % int(value)
-                subquery = lucene.RegexQuery(
+                subquery = pylucene.RegexQuery(
                     self.get_term(field.name, "^[\d]{4}[\d]{2}%s" % value),
                 )
             elif lookup_type == "isnull":
-                subquery = lucene.RegexQuery(
+                subquery = pylucene.RegexQuery(
                     self.get_term(field.name, "^$")
                 )
 
@@ -201,7 +201,7 @@ class WhereNodeSearcher (WhereNode) :
             values = [self.index_model._meta.get_field(name).to_query(i) for i in value]
             if lookup_type == "range" :
                 values.sort()
-                subquery = lucene.RangeQuery(
+                subquery = pylucene.RangeQuery(
                     self.get_term(field.name, values[0]),
                     self.get_term(field.name, values[1]),
                     False,

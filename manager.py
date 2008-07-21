@@ -23,14 +23,14 @@ from django.db.models.query import QuerySet as queryset_django
 from django.db.models.manager import Manager as manager_django
 from django.db.models.sql.datastructures import Empty
 
-import core, queryset, signals, document
+import constant, queryset, signals, utils
 
 class Manager (models.Manager) :
     def __init__ (self, target_models=Empty()) :
         super(Manager, self).__init__()
 
         self.target_models = target_models
-        self.manager_id = core.METHOD_NAME_SEARCH
+        self.manager_id = constant.METHOD_NAME_SEARCH
 
     def contribute_to_class (self, model, name) :
         super(Manager, self).contribute_to_class(model, name)
@@ -44,7 +44,7 @@ class Manager (models.Manager) :
                 else :
                     app_label = self.model._meta.app_label
 
-                __target_models.append(document.Model.get_name_by_model_name(app_label, model_name, ))
+                __target_models.append(utils.Model.get_name_by_model_name(app_label, model_name, ))
 
             self.target_models = __target_models
 
@@ -53,6 +53,7 @@ class Manager (models.Manager) :
             signals.Signals.connect("class_prepared", model=model, )
 
     def get_query_set(self):
+        import core
         core.initialize_index_models()
         return queryset.QuerySet(self.model, target_models=self.target_models)
 
@@ -135,7 +136,7 @@ class MethodCreateIndex (object) :
                 continue
             else :
                 ff = getattr(model, f)
-                if isinstance(ff, manager_django) and f != core.METHOD_NAME_SEARCH and not hasattr(ff, "manager_id"):
+                if isinstance(ff, manager_django) and f != constant.METHOD_NAME_SEARCH and not hasattr(ff, "manager_id"):
 
                     ff.get_query_set = new.instancemethod(
                         self.manager_method_get_query_set, ff, ff.__class__

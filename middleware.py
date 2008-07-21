@@ -30,6 +30,9 @@ import models as models_search
 
 class LuceneMiddleware (object) :
 
+    def process_request (self, request) :
+        pylucene.initialize_vm()
+
     def process_exception (self, request, exception, ) :
         if settings.DEBUG :
             traceback.print_exc()
