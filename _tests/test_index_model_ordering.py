@@ -20,7 +20,7 @@
 import sys, unittest
 from django.conf import settings
 
-import document
+import document, utils
 
 import models as models_tests
 
@@ -30,7 +30,7 @@ class ModelIndexModelOrdering (unittest.TestCase):
         self.from_indexed = models_tests.document.objects_search
 
     def test_ordering (self) :
-        __index_model = document.Model.get_index_model(models_tests.document)
+        __index_model = utils.Model.get_index_model(models_tests.document)
 
         o = self.from_model.all().order_by("-time_added", "title", )
         o_n = self.from_indexed.all().order_by("-time_added", "title", )
@@ -41,7 +41,7 @@ class ModelIndexModelOrdering (unittest.TestCase):
         )
 
     def test_ordering_random (self) :
-        __index_model = document.Model.get_index_model(models_tests.document)
+        __index_model = utils.Model.get_index_model(models_tests.document)
 
         o = self.from_model.all().order_by("?", )
         o_n = self.from_indexed.all().order_by("?", )
@@ -51,7 +51,7 @@ class ModelIndexModelOrdering (unittest.TestCase):
         )
 
 if __name__ == "__main__" :
-    import core, pylucene
+    import core
 
     from django.db import models
     models.get_models()

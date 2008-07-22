@@ -25,7 +25,7 @@ from django.db.models.sql.datastructures import Empty
 
 from models_sql_query import Query
 
-import pylucene, document
+import pylucene, constant, utils, document
 
 class QuerySet (QuerySet_django) :
     _fields = list()
@@ -64,7 +64,7 @@ class QuerySet (QuerySet_django) :
         return len(self._result_cache)
 
     def get_raw_query (self) :
-        return self.query.as_sql()[0]
+        return utils.add_unicode_function(self.query.as_sql()[0])
 
     def raw_query (self, query) :
         try :
@@ -105,7 +105,7 @@ class QuerySet (QuerySet_django) :
         o = self.filter(**{"%s__in" % self.model._meta.pk.name: pk_list})
         r = list()
         for i in o :
-            r.append((getattr(i, document.FIELD_NAME_PK), i))
+            r.append((getattr(i, constant.FIELD_NAME_PK), i))
 
         return dict(r)
 
@@ -120,7 +120,7 @@ class QuerySet (QuerySet_django) :
         if kwargs.has_key("pk") :
             searcher = pylucene.Searcher()
             doc = searcher.get_document_by_uid(
-                document.Model.get_uid(self.model, kwargs.get("pk"))
+                utils.Model.get_uid(self.model, kwargs.get("pk"))
             )
             if doc is None :
                 raise ObjectDoesNotExist, ""
