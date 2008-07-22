@@ -55,7 +55,7 @@ class ModelFilterQTestCase (unittest.TestCase):
 
 
 if __name__ == "__main__" :
-    import core, pylucene
+    import core
 
     from django.db import models
     models.get_models()

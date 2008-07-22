@@ -27,7 +27,7 @@ from django.views.generic.list_detail import object_list, object_detail
 import models as models_search
 import forms as forms_search
 
-import core, pylucene, document
+import core, pylucene, utils, constant, document
 # Gathering and initializing registered models.
 core.initialize_index_models()
 
@@ -91,14 +91,14 @@ def execute (request, command=None, model_name=None, ) :
         args = list()
         if command == "clean" :
             command = "unindex_by_term"
-            term = pylucene.Term.new(document.FIELD_NAME_MODEL, model_name)
+            term = pylucene.Term.new(constant.FIELD_NAME_MODEL, model_name)
 
             args.append(term)
 
         sys.INDEX_MANAGER.execute(command, *args)
 
     return HttpResponseRedirect(
-            os.path.normpath(os.path.join(request.META.get("REQUEST_URI"), "../",)) + "/")
+            os.path.normpath(os.path.join(request.META.get("PATH_INFO"), "../",)) + "/")
 
 @check_auth
 def index (request, *args, **kwargs) :
@@ -107,7 +107,7 @@ def index (request, *args, **kwargs) :
     """
 
     if kwargs.get("redirect", None) :
-        return HttpResponseRedirect(os.path.normpath(os.path.join(request.META.get("REQUEST_URI"), kwargs.get("redirect"))) + "/")
+        return HttpResponseRedirect(os.path.normpath(os.path.join(request.META.get("PATH_INFO"), kwargs.get("redirect"))) + "/")
 
     index_model_list = list()
     for k, v in sys.MODELS_REGISTERED.items() :
@@ -130,7 +130,7 @@ def model_view (request, model_name) :
     Object list of model.
     """
 
-    index_model = document.Model.get_index_model(model_name)
+    index_model = utils.Model.get_index_model(model_name)
     if not index_model :
         raise Http404
 
@@ -161,7 +161,7 @@ def model_object_view (request, model_name, object_id) :
     Model object details
     """
 
-    index_model = document.Model.get_index_model(model_name)
+    index_model = utils.Model.get_index_model(model_name)
     if not index_model :
         raise Http404
 
@@ -218,7 +218,7 @@ def search (request, model_name=None, ) :
     error = None
     queryset = ObjectList()
     if form.is_valid() :
-        index_model = document.Model.get_index_model(model_name)
+        index_model = utils.Model.get_index_model(model_name)
         if index_model :
             try :
                 queryset = index_model.get_searcher().raw_query(raw_query)

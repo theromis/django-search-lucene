@@ -21,22 +21,8 @@ from django.conf import settings
 from django.db import models
 from django.utils.synch import RWLock
 
-import pylucene, document, signals, manager
+import pylucene, constant, utils, document, signals, manager
 
-
-######################################################################
-# Constants
-METHOD_NAME_SEARCH = "__searcher__"
-class CLASS_SORT_RANDOM (object) :
-    def __repr__ (self) :
-        return "\"sort:random\""
-
-SORT_RANDOM = CLASS_SORT_RANDOM()
-
-SIGNALS = (
-    "post_save",
-    "post_delete",
-)
 
 ######################################################################
 # Classes
@@ -84,7 +70,7 @@ class IndexManager (object) :
             w = pylucene.IndexWriter(**kwargs)
             w.index(
                 document.Document.create_document_from_object(obj),
-                uid=str(document.Model.get_uid(obj, obj.pk)),
+                uid=str(utils.Model.get_uid(obj, obj.pk)),
             )
             w.close()
         except Exception, e :
@@ -97,7 +83,7 @@ class IndexManager (object) :
         try :
             w = pylucene.IndexWriter(**kwargs)
             w.unindex(
-                pylucene.Term.new(document.FIELD_NAME_UID, str(document.Model.get_uid(obj, obj.pk)))
+                pylucene.Term.new(constant.FIELD_NAME_UID, str(utils.Model.get_uid(obj, obj.pk)))
             )
             w.close()
         except Exception, e :
@@ -147,7 +133,7 @@ class ModelsRegisteredDict (dict) :
         self.write_lock = threading.RLock()
 
     def add (self, index_model) :
-        self[document.Model.get_name(index_model.Meta.model)] = index_model()
+        self[utils.Model.get_name(index_model.Meta.model)] = index_model()
 
     def lock (self) :
         if self.__lock :
@@ -166,10 +152,10 @@ class ModelsRegisteredDict (dict) :
 
         # add default manager
         for name, index_model in self.items() :
-            setattr(index_model._meta.model, METHOD_NAME_SEARCH, manager.Manager(), )
+            setattr(index_model._meta.model, constant.METHOD_NAME_SEARCH, manager.Manager(), )
             index_model._meta.model.__searcher__.contribute_to_class(
                 index_model._meta.model,
-                METHOD_NAME_SEARCH,
+                constant.METHOD_NAME_SEARCH,
             )
 
         self.write_lock.release()
@@ -188,7 +174,7 @@ class ModelsRegisteredDict (dict) :
 ######################################################################
 # Functions
 def register (model) :
-    name = document.Model.get_name(model)
+    name = utils.Model.get_name(model)
     if sys.MODELS_REGISTERED.has_candidate(name) :
         return
 
@@ -200,7 +186,7 @@ def register (model) :
     manager.MethodCreateIndex.analyze_model_manager(model)
 
     # attach signals
-    for sig in SIGNALS :
+    for sig in constant.SIGNALS :
         signals.Signals.connect(sig, model=model)
 
     if settings.DEBUG > 1 :
@@ -256,12 +242,8 @@ def initialize_index_models () :
 
     index_models = set(index_models)
     for s in index_models :
-        name = document.Model.get_name(s.Meta.model)
-        index_model = document.get_new_index_model(
-            s.Meta.model,
-            meta=s.Meta,
-        )()
-        sys.MODELS_REGISTERED[name] = index_model
+        name = utils.Model.get_name(s.Meta.model)
+        sys.MODELS_REGISTERED[name] = s()
 
     sys.MODELS_REGISTERED.lock()
 

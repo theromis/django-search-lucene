@@ -28,7 +28,7 @@
 	{% if field.abstract %}
 	{% else %}
 <tr>
-    <th scope="row"><nobr>{% blocktrans with field.verbose_name|capfirst as name %}{{name}}{% endblocktrans %}:</nobr></th>
+    <td scope="row" align="right"><nobr>{% blocktrans with field.verbose_name|capfirst as name %}{{name}}{% endblocktrans %}:</nobr></td>
     <td>
         {{field.to_model}}
         &nbsp;&rsaquo;<a href="#"

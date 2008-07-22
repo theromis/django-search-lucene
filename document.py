@@ -17,7 +17,7 @@
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 """
 
-import re, lucene, sys, new, datetime, decimal, urlparse, types, traceback
+import re, sys, new, datetime, decimal, urlparse, types, traceback
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -26,80 +26,9 @@ from django.db.models.base import ModelBase
 from django.db.models.options import get_verbose_name
 from django.utils.html import escape
 
-import core, pylucene
+import constant, pylucene, utils
 
-######################################################################
-# Constants
-FIELD_NAME_UID     = "__uid__" # unique id of document
-FIELD_NAME_PK      = "__pk__" # pk value of object
-FIELD_NAME_MODEL   = "__model__" # model name of object
-FIELD_NAME_UNICODE = "__unicode__" # string returns of object
-
-
-RE_INDEX_MODEL_FIELD_NAME = re.compile("Field$")
-
-FIELDS_TEXT = (
-    fields_django.CharField,
-    fields_django.TextField,
-    fields_django.XMLField,
-)
-
-FIELDS_SKIP_TO_SORT = (
-    fields_django.TextField,
-    fields_django.XMLField,
-)
-
-FIELDS_INT = (
-    fields_django.SmallIntegerField,
-    fields_django.PositiveSmallIntegerField,
-    fields_django.PositiveIntegerField,
-    fields_django.IntegerField,
-    fields_django.AutoField,
-)
-
-FIELDS_FLOAT = (
-    fields_django.FloatField,
-)
-
-FIELDS_DECIMAL = (
-    fields_django.DecimalField,
-)
-
-FIELDS_BOOLEAN = (
-    fields_django.NullBooleanField,
-    fields_django.BooleanField,
-)
-
-FIELDS_DATETIME = (
-    fields_django.DateField,
-    fields_django.DateTimeField,
-)
-FIELDS_TIME = (
-    fields_django.TimeField,
-)
-
-FIELDS_MULTI_KEYWORD = (
-    fields_django.FileField,
-    fields_django.FilePathField,
-    fields_django.ImageField,
-    fields_django.URLField,
-    fields_django.EmailField,
-)
-
-FIELDS_KEYWORD = (
-    fields_django.USStateField,
-    fields_django.SlugField,
-)
-
-# set the fore/background color of highlighted strings in search result. Reference to  http://lucene.apache.org/java/2_3_2/api/org/apache/lucene/search/highlight/SpanGradientFormatter.html
-HIGHLIGHTED_COLORS = (
-    "#000000", # min foreground color
-    "#101010", # max foreground color
-    "#000000", # min background color
-    "#DCEAA3", # max background color
-)
-HIGHLIGHT_TAG = ("""<span class="highlight">""", "</span>", )
-
+lucene = constant.import_lucene()
 
 ######################################################################
 # Classes
@@ -221,16 +150,18 @@ class FieldBase (object) :
         else :
             self.abstract = self.abstract
 
-        self.highlighter = dict()
-
         self.doc = doc
+        self.initialize()
 
         if func_get_value_from_object :
             self.func_get_value_from_object = func_get_value_from_object
 
         # set analyzer
-        if analyzer and pylucene.ANALYZERS.has_key(analyzer) :
-             self.analyzer = pylucene.ANALYZERS.get(analyzer)()
+        if analyzer and constant.ANALYZERS.has_key(analyzer) :
+             self.analyzer = constant.ANALYZERS.get(analyzer)()
+
+    def initialize (self) :
+        self.highlighter = dict()
 
     def get_value_from_object (self, obj, name) :
         if self.func_get_value_from_object :
@@ -276,7 +207,7 @@ class FieldBase (object) :
 
         if not self.terms :
             reader = pylucene.Reader()
-            self.terms = reader.get_field_terms(getattr(self.doc, FIELD_NAME_UID), self.name)
+            self.terms = reader.get_field_terms(getattr(self.doc, constant.FIELD_NAME_UID), self.name)
             reader.close()
 
         return self.terms
@@ -293,7 +224,7 @@ class FieldBase (object) :
             __highlighter = lucene.Highlighter(
                 lucene.SpanGradientFormatter(
                     1.0,
-                    *HIGHLIGHTED_COLORS
+                    *constant.HIGHLIGHTED_COLORS
                 ),
                 lucene.QueryScorer(query),
             )
@@ -354,7 +285,7 @@ class Fields (object) :
             ]
 
     class Text (FieldBase) :
-        pass
+        analyzer = lucene.WhitespaceAnalyzer()
 
     class Integer (FieldBase) :
         tokenize = False
@@ -585,7 +516,7 @@ class Meta (object) :
 
             # Add sort field
             # For searching performance and reduce the index db size, TextField does not include in sort field,
-            if f.__class__ not in FIELDS_SKIP_TO_SORT :
+            if f.__class__ not in constant.FIELDS_SKIP_TO_SORT :
                 fs = Fields.Sort(fm)
                 self.fields[fs.name] = fs
                 self.field_analyzers[fs.name] = fs.analyzer
@@ -601,29 +532,29 @@ class Meta (object) :
         # pk field
         if pk_field :
             pk_field = Fields.Integer(
-                FIELD_NAME_PK,
+                constant.FIELD_NAME_PK,
                 func_get_value_from_object=lambda obj, name : obj.pk,
                 abstract=True,
             )
-            self.fields[FIELD_NAME_PK] = pk_field
+            self.fields[constant.FIELD_NAME_PK] = pk_field
 
         # uid field
-        self.fields[FIELD_NAME_UID] = Fields.Keyword(
-            FIELD_NAME_UID,
-            func_get_value_from_object=lambda obj, name : Model.get_uid(obj, obj.pk),
+        self.fields[constant.FIELD_NAME_UID] = Fields.Keyword(
+            constant.FIELD_NAME_UID,
+            func_get_value_from_object=lambda obj, name : utils.Model.get_uid(obj, obj.pk),
             abstract=True,
         )
 
         # model field
-        self.fields[FIELD_NAME_MODEL] = Fields.Keyword(
-            FIELD_NAME_MODEL,
-            func_get_value_from_object=lambda obj, name : Model.get_name(obj),
+        self.fields[constant.FIELD_NAME_MODEL] = Fields.Keyword(
+            constant.FIELD_NAME_MODEL,
+            func_get_value_from_object=lambda obj, name : utils.Model.get_name(obj),
             abstract=True,
         )
 
         # unicode return field
-        self.fields[FIELD_NAME_UNICODE] = Fields.Keyword(
-            FIELD_NAME_UNICODE,
+        self.fields[constant.FIELD_NAME_UNICODE] = Fields.Keyword(
+            constant.FIELD_NAME_UNICODE,
             func_get_value_from_object=lambda obj, name : unicode(obj),
             abstract=False,
         )
@@ -633,7 +564,7 @@ class Meta (object) :
         args = list()
         kwargs = dict()
 
-        name = RE_INDEX_MODEL_FIELD_NAME.sub("", field.__class__.__name__)
+        name = constant.RE_INDEX_MODEL_FIELD_NAME.sub("", field.__class__.__name__)
         if hasattr(Fields, name) :
             _f = getattr(Fields, name)
         elif hasattr(DefaultFieldFuncGetValueFromObject, name) :
@@ -664,34 +595,7 @@ class IndexModel (object) :
         return self._meta
 
     def get_searcher (self) :
-        return getattr(self._meta.model, core.METHOD_NAME_SEARCH)
-
-class Model (object) :
-
-    def get_name (self, model) :
-        return self.get_name_by_model_name(
-            model._meta.app_label,
-            model._meta.object_name,
-        )
-
-    def get_name_by_model_name (self, app_label, model_name) :
-        return "%s.%s" % (app_label, model_name)
-
-    def get_uid (self, model, pk) :
-        return "%s/%s" % (self.get_name(model), pk, )
-
-    def get_index_model (self, model) :
-        if isinstance(model, ModelBase) :
-            model = Model.get_name(model)
-        elif isinstance(model.__class__, ModelBase) :
-            model = self.get_name(model.__class__)
-
-        return sys.MODELS_REGISTERED.get(model, None)
-
-    get_name    = classmethod(get_name)
-    get_name_by_model_name = classmethod(get_name_by_model_name)
-    get_uid     = classmethod(get_uid)
-    get_index_model    = classmethod(get_index_model)
+        return getattr(self._meta.model, constant.METHOD_NAME_SEARCH)
 
 class Document (object) :
 
@@ -706,8 +610,9 @@ class Document (object) :
             self.explanation = obj[2]
 
         self.query = query
-        self.index_model = sys.MODELS_REGISTERED.get(self.doc.get(FIELD_NAME_MODEL), None)
+        self.index_model = sys.MODELS_REGISTERED.get(self.doc.get(constant.FIELD_NAME_MODEL), None)
         self._meta = self.index_model._meta
+        self.meta = self._meta
 
         # attach local_attrs, except '__unicode__'.
         func_unicode = None
@@ -749,11 +654,11 @@ class Document (object) :
         if hasattr(self, "__unicode_index_model__") :
             return self.__unicode_index_model__()
         else :
-            return self.get_field(FIELD_NAME_UNICODE).to_model()
+            return self.get_field(constant.FIELD_NAME_UNICODE).to_model()
 
     def __get_attrname (self, name) :
         if name == "pk" :
-            return FIELD_NAME_PK
+            return constant.FIELD_NAME_PK
 
         return name
 
@@ -776,6 +681,7 @@ class Document (object) :
 
         oo.__dict__.update(o.__dict__)
         oo.doc = self
+        oo.initialize()
 
         # Overwrite to_model, to_query, to_index
         __func_to_model = oo.to_model
@@ -813,10 +719,10 @@ class Document (object) :
             yield f
 
     def get_explanation (self) :
-        return self.explanation
+        return utils.add_unicode_function(self.explanation)
 
     def create_document_from_object (self, obj) :
-        base = Model.get_index_model(obj)
+        base = utils.Model.get_index_model(obj)
         if base is None :
             return None
 
@@ -865,7 +771,7 @@ def get_new_index_model (model, local_attrs=dict(), meta=None, name=None) :
         )
 
     return new.classobj(
-        name and name or "%s" % Model.get_name(model),
+        name and name or "%s" % utils.Model.get_name(model),
         (IndexModel, ),
         {
             "Meta": meta,
@@ -892,7 +798,6 @@ Usage
 __author__ =  "Spike^ekipS <spikeekips@gmail.com>"
 __version__=  "0.1"
 __nonsense__ = ""
-
 
 
 

@@ -21,7 +21,7 @@ from django.conf import settings
 from django.contrib.webdesign.lorem_ipsum import words, paragraphs
 from django.db.models import ObjectDoesNotExist
 
-import lucene, pylucene, core
+import pylucene, core
 import models as models_tests
 
 class PyLuceneThreadTestCase (unittest.TestCase):

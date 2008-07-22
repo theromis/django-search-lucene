@@ -21,13 +21,36 @@ from django.conf import settings
 from django.db import models, connection
 from django.db.models.query_utils import QueryWrapper
 from django.db.models.sql.datastructures import EmptyResultSet, FullResultSet
-from django.db.models.sql.where import WhereNode, OR, AND
+from django.db.models.sql import where
 from django.utils import tree
 from django.utils.tree import Node
 
-import lucene, core, pylucene, document
+import pylucene, constant, utils
 
-class WhereNodeSearcher (WhereNode) :
+
+LOOKUP_TYPE_SINGLE_VALUE = (
+    "contains",
+    "day",
+    "endswith",
+    "exact",
+    "gt",
+    "gte",
+    "icontains",
+    "iendswith",
+    "iexact",
+    "iregex",
+    "isnull",
+    "istartswith",
+    "lt",
+    "lte",
+    "month",
+    "regex",
+    "search",
+    "startswith",
+    "year",
+)
+
+class WhereNode (where.WhereNode, tree.Node) :
 
     model = None
 
@@ -43,11 +66,11 @@ class WhereNodeSearcher (WhereNode) :
         if not node.children:
             return None
 
-        self.index_model = document.Model.get_index_model(self.model)
+        self.index_model = utils.Model.get_index_model(self.model)
         subquery = None
         queries = list()
         empty = True
-        if node.connector == OR :
+        if node.connector == where.OR :
             subquery = pylucene.BooleanQuery()
 
         for child in node.children:
@@ -60,13 +83,13 @@ class WhereNodeSearcher (WhereNode) :
                 else:
                     sql = self.make_atom(child, qn)
             except EmptyResultSet, e :
-                if node.connector == AND and not node.negated:
+                if node.connector == where.AND and not node.negated:
                     raise
                 elif node.negated:
                     empty = False
                 continue
             except FullResultSet:
-                if self.connector == OR:
+                if self.connector == where.OR:
                     if node.negated:
                         empty = True
                         break
@@ -85,20 +108,20 @@ class WhereNodeSearcher (WhereNode) :
                 if query == sql :
                     continue
 
-                if node.connector == OR :
-                    connector = OR
+                if node.connector == where.OR :
+                    connector = where.OR
                 elif node.negated == False :
                     connector = False
                 else :
                     connector = True
 
                 if subquery :
-                    subquery.add(sql, pylucene.QUERY_BOOLEANS.get(OR))
+                    subquery.add(sql, constant.QUERY_BOOLEANS.get(where.OR))
                 else :
-                    query.add(sql, pylucene.QUERY_BOOLEANS.get(connector))
+                    query.add(sql, constant.QUERY_BOOLEANS.get(connector))
 
         if subquery :
-            query.add(subquery, pylucene.QUERY_BOOLEANS.get(AND))
+            query.add(subquery, constant.QUERY_BOOLEANS.get(where.AND))
 
         if empty:
             raise EmptyResultSet
@@ -109,7 +132,7 @@ class WhereNodeSearcher (WhereNode) :
         return query
 
     def get_term (self, field, value) :
-        return lucene.Term(field, value)
+        return pylucene.Term.new(field, value)
 
     def add(self, data, connector):
         if not isinstance(data, (list, tuple)):
@@ -128,54 +151,56 @@ class WhereNodeSearcher (WhereNode) :
         else:
             annotation = bool(value)
 
-        super(WhereNode, self).add((alias, col, field, lookup_type,
-                annotation, value), connector)
+        tree.Node.add(self, (alias, col, field, lookup_type, annotation, value), connector)
 
     def make_atom (self, child, qn) :
         table_alias, name, field, lookup_type, value_annot, value = child
 
         subquery = None
-        if type(value) in (str, unicode, None, bool, int, long, float, ) :
+        if lookup_type in LOOKUP_TYPE_SINGLE_VALUE :
+            if type(value) in (list, tuple, ) :
+                value = value[0]
+
             value = self.index_model._meta.get_field(name).to_query(value)
 
             ######################################################################
             # value is <str>
             if lookup_type in ("search", "contains", "icontains", ) :
-                subquery = lucene.RegexQuery(
+                subquery = pylucene.RegexQuery(
                     self.get_term(
                         field.name,
                         "%s" % (lookup_type == "icontains" and value.lower() or value),
                     )
                 )
             elif lookup_type in ("regex", "iregex", ) :
-                subquery = lucene.RegexQuery(
+                subquery = pylucene.RegexQuery(
                     self.get_term(
                         field.name,
                         lookup_type == "iregex" and value.lower() or value
                     )
                 )
             elif lookup_type in ("startswith", "istartswith", ) :
-                subquery = lucene.RegexQuery(
+                subquery = pylucene.RegexQuery(
                     self.get_term(
                         field.name,
                         "^(%s)" % (lookup_type == "istartswith" and value.lower() or value),
                     )
                 )
             elif lookup_type in ("endswith", "iendswith", ) :
-                subquery = lucene.RegexQuery(
+                subquery = pylucene.RegexQuery(
                     self.get_term(
                         field.name,
                         "%s$" % (lookup_type == "iendswith" and value.lower() or value),
                     )
                 )
             elif lookup_type in ("lt", "lte", ) :
-                subquery = lucene.RangeQuery(
+                subquery = pylucene.RangeQuery(
                     None,
                     self.get_term(field.name, value),
                     False,
                 )
             elif lookup_type in ("gt", "gte", ) :
-                subquery = lucene.RangeQuery(
+                subquery = pylucene.RangeQuery(
                     self.get_term(field.name, value),
                     None,
                     False,
@@ -184,16 +209,16 @@ class WhereNodeSearcher (WhereNode) :
                 value = lookup_type == "iexact" and value.lower() or value
                 subquery = pylucene.TermQuery(self.get_term(field.name, value))
             elif lookup_type == "year" :
-                subquery = lucene.RegexQuery(
+                subquery = pylucene.RegexQuery(
                     self.get_term(field.name, "^%s" % value),
                 )
             elif lookup_type in ("month", "day") :
                 value = "%02d" % int(value)
-                subquery = lucene.RegexQuery(
+                subquery = pylucene.RegexQuery(
                     self.get_term(field.name, "^[\d]{4}[\d]{2}%s" % value),
                 )
             elif lookup_type == "isnull":
-                subquery = lucene.RegexQuery(
+                subquery = pylucene.RegexQuery(
                     self.get_term(field.name, "^$")
                 )
 
@@ -201,7 +226,7 @@ class WhereNodeSearcher (WhereNode) :
             values = [self.index_model._meta.get_field(name).to_query(i) for i in value]
             if lookup_type == "range" :
                 values.sort()
-                subquery = lucene.RangeQuery(
+                subquery = pylucene.RangeQuery(
                     self.get_term(field.name, values[0]),
                     self.get_term(field.name, values[1]),
                     False,
@@ -211,7 +236,7 @@ class WhereNodeSearcher (WhereNode) :
                 for i in values :
                     subquery.add(
                         pylucene.TermQuery(self.get_term(field.name, i)),
-                        pylucene.QUERY_BOOLEANS.get("OR"),
+                        constant.QUERY_BOOLEANS.get("OR"),
                     )
 
         if subquery :

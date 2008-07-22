@@ -269,7 +269,7 @@ if __name__ == "__main__" :
 
     settings.SEARCH_STORAGE_PATH = settings.SEARCH_STORAGE_PATH  + "_test"
     settings.SEARCH_STORAGE_TYPE = "fs"
-    settings.DEBUG = 2
+    settings.DEBUG = False
 
     models_tests.cleanup_index()
     models_tests.cleanup_documents()

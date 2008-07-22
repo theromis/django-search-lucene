@@ -23,16 +23,18 @@ from django.db.models.sql import constants
 from django.db.models.sql.datastructures import Empty
 from django.db.models.sql.query import get_order_dir
 
-import lucene, core, document, pylucene
-from models_sql_where import WhereNodeSearcher
+from models_sql_where import WhereNode
+import utils, constant, pylucene
+
+lucene = constant.import_lucene()
 
 class Query (sql.Query) :
     raw_queries = list()
     _query_cache = None
     target_models = Empty()
 
-    def __init__ (self, model, connection, where=WhereNodeSearcher, target_models=Empty()) :
-        super(Query, self).__init__(model, connection, where=WhereNodeSearcher)
+    def __init__ (self, model, connection, where=WhereNode, target_models=Empty()) :
+        super(Query, self).__init__(model, connection, where=WhereNode)
         self.where.set_model(self.model)
         self.target_models = target_models
         self.raw_queries = list()
@@ -58,7 +60,7 @@ class Query (sql.Query) :
         self._query_cache = None
 
     def as_sql (self, with_limits=True, with_col_aliases=False):
-        self.index_model = document.Model.get_index_model(self.model)
+        self.index_model = utils.Model.get_index_model(self.model)
 
         if not self._query_cache :
             _query = self.where.as_sql(pylucene.BooleanQuery(), qn=self.quote_name_unless_alias)
@@ -72,7 +74,7 @@ class Query (sql.Query) :
                 for q in self.raw_queries :
                     _query.add(
                         q,
-                        pylucene.QUERY_BOOLEANS.get("AND"),
+                        constant.QUERY_BOOLEANS.get("AND"),
                     )
 
             if self.target_models is None :
@@ -85,20 +87,20 @@ class Query (sql.Query) :
             if len(__models) < 2 :
                 _query.add(
                     pylucene.TermQuery(
-                        pylucene.Term.new(document.FIELD_NAME_MODEL, __models[0])
+                        pylucene.Term.new(constant.FIELD_NAME_MODEL, __models[0])
                     ),
-                    pylucene.QUERY_BOOLEANS.get("AND"),
+                    constant.QUERY_BOOLEANS.get("AND"),
                 )
             else :
                 subquery = pylucene.BooleanQuery()
                 for i in __models :
                     subquery.add(
                         pylucene.TermQuery(
-                            pylucene.Term.new(document.FIELD_NAME_MODEL, i)
+                            pylucene.Term.new(constant.FIELD_NAME_MODEL, i)
                         ),
-                        pylucene.QUERY_BOOLEANS.get("OR"),
+                        constant.QUERY_BOOLEANS.get("OR"),
                     )
-                _query.add(subquery, pylucene.QUERY_BOOLEANS.get("OR"), )
+                _query.add(subquery, constant.QUERY_BOOLEANS.get("OR"), )
 
             self._query_cache = (_query, _ordering, )
 
@@ -134,7 +136,7 @@ class Query (sql.Query) :
                 _r = False
                 _f = i
                 if i[0] == "?" :
-                    return core.SORT_RANDOM
+                    return constant.SORT_RANDOM
 
                 if i[0].startswith("-") :
                     _r = True
@@ -145,8 +147,8 @@ class Query (sql.Query) :
 
                 _sorts.append(lucene.SortField(_f, _r))
 
-            if True not in [i.startswith(document.FIELD_NAME_PK) or i.startswith("-%s" % document.FIELD_NAME_PK) for i in ordering] :
-                _sorts.append(lucene.SortField(document.FIELD_NAME_PK, _r))
+            if True not in [i.startswith(constant.FIELD_NAME_PK) or i.startswith("-%s" % constant.FIELD_NAME_PK) for i in ordering] :
+                _sorts.append(lucene.SortField(constant.FIELD_NAME_PK, _r))
 
             return lucene.Sort(_sorts)
 
