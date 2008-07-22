@@ -21,13 +21,36 @@ from django.conf import settings
 from django.db import models, connection
 from django.db.models.query_utils import QueryWrapper
 from django.db.models.sql.datastructures import EmptyResultSet, FullResultSet
-from django.db.models.sql.where import WhereNode, OR, AND
+from django.db.models.sql import where
 from django.utils import tree
 from django.utils.tree import Node
 
-import pylucene, utils
+import pylucene, constant, utils
 
-class WhereNode (WhereNode) :
+
+LOOKUP_TYPE_SINGLE_VALUE = (
+    "contains",
+    "day",
+    "endswith",
+    "exact",
+    "gt",
+    "gte",
+    "icontains",
+    "iendswith",
+    "iexact",
+    "iregex",
+    "isnull",
+    "istartswith",
+    "lt",
+    "lte",
+    "month",
+    "regex",
+    "search",
+    "startswith",
+    "year",
+)
+
+class WhereNode (where.WhereNode, tree.Node) :
 
     model = None
 
@@ -47,7 +70,7 @@ class WhereNode (WhereNode) :
         subquery = None
         queries = list()
         empty = True
-        if node.connector == OR :
+        if node.connector == where.OR :
             subquery = pylucene.BooleanQuery()
 
         for child in node.children:
@@ -60,13 +83,13 @@ class WhereNode (WhereNode) :
                 else:
                     sql = self.make_atom(child, qn)
             except EmptyResultSet, e :
-                if node.connector == AND and not node.negated:
+                if node.connector == where.AND and not node.negated:
                     raise
                 elif node.negated:
                     empty = False
                 continue
             except FullResultSet:
-                if self.connector == OR:
+                if self.connector == where.OR:
                     if node.negated:
                         empty = True
                         break
@@ -85,20 +108,20 @@ class WhereNode (WhereNode) :
                 if query == sql :
                     continue
 
-                if node.connector == OR :
-                    connector = OR
+                if node.connector == where.OR :
+                    connector = where.OR
                 elif node.negated == False :
                     connector = False
                 else :
                     connector = True
 
                 if subquery :
-                    subquery.add(sql, pylucene.QUERY_BOOLEANS.get(OR))
+                    subquery.add(sql, constant.QUERY_BOOLEANS.get(where.OR))
                 else :
-                    query.add(sql, pylucene.QUERY_BOOLEANS.get(connector))
+                    query.add(sql, constant.QUERY_BOOLEANS.get(connector))
 
         if subquery :
-            query.add(subquery, pylucene.QUERY_BOOLEANS.get(AND))
+            query.add(subquery, constant.QUERY_BOOLEANS.get(where.AND))
 
         if empty:
             raise EmptyResultSet
@@ -128,14 +151,16 @@ class WhereNode (WhereNode) :
         else:
             annotation = bool(value)
 
-        super(WhereNode, self).add((alias, col, field, lookup_type,
-                annotation, value), connector)
+        tree.Node.add(self, (alias, col, field, lookup_type, annotation, value), connector)
 
     def make_atom (self, child, qn) :
         table_alias, name, field, lookup_type, value_annot, value = child
 
         subquery = None
-        if type(value) in (str, unicode, None, bool, int, long, float, ) :
+        if lookup_type in LOOKUP_TYPE_SINGLE_VALUE :
+            if type(value) in (list, tuple, ) :
+                value = value[0]
+
             value = self.index_model._meta.get_field(name).to_query(value)
 
             ######################################################################
@@ -211,7 +236,7 @@ class WhereNode (WhereNode) :
                 for i in values :
                     subquery.add(
                         pylucene.TermQuery(self.get_term(field.name, i)),
-                        pylucene.QUERY_BOOLEANS.get("OR"),
+                        constant.QUERY_BOOLEANS.get("OR"),
                     )
 
         if subquery :

@@ -64,7 +64,7 @@ class QuerySet (QuerySet_django) :
         return len(self._result_cache)
 
     def get_raw_query (self) :
-        return self.query.as_sql()[0]
+        return utils.add_unicode_function(self.query.as_sql()[0])
 
     def raw_query (self, query) :
         try :

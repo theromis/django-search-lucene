@@ -136,7 +136,7 @@ class Query (sql.Query) :
                 _r = False
                 _f = i
                 if i[0] == "?" :
-                    return constants.SORT_RANDOM
+                    return constant.SORT_RANDOM
 
                 if i[0].startswith("-") :
                     _r = True
@@ -147,8 +147,8 @@ class Query (sql.Query) :
 
                 _sorts.append(lucene.SortField(_f, _r))
 
-            if True not in [i.startswith(constants.FIELD_NAME_PK) or i.startswith("-%s" % constants.FIELD_NAME_PK) for i in ordering] :
-                _sorts.append(lucene.SortField(constants.FIELD_NAME_PK, _r))
+            if True not in [i.startswith(constant.FIELD_NAME_PK) or i.startswith("-%s" % constant.FIELD_NAME_PK) for i in ordering] :
+                _sorts.append(lucene.SortField(constant.FIELD_NAME_PK, _r))
 
             return lucene.Sort(_sorts)
 

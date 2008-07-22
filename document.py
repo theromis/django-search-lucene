@@ -150,9 +150,8 @@ class FieldBase (object) :
         else :
             self.abstract = self.abstract
 
-        self.highlighter = dict()
-
         self.doc = doc
+        self.initialize()
 
         if func_get_value_from_object :
             self.func_get_value_from_object = func_get_value_from_object
@@ -160,6 +159,9 @@ class FieldBase (object) :
         # set analyzer
         if analyzer and constant.ANALYZERS.has_key(analyzer) :
              self.analyzer = constant.ANALYZERS.get(analyzer)()
+
+    def initialize (self) :
+        self.highlighter = dict()
 
     def get_value_from_object (self, obj, name) :
         if self.func_get_value_from_object :
@@ -283,7 +285,7 @@ class Fields (object) :
             ]
 
     class Text (FieldBase) :
-        pass
+        analyzer = lucene.WhitespaceAnalyzer()
 
     class Integer (FieldBase) :
         tokenize = False
@@ -610,6 +612,7 @@ class Document (object) :
         self.query = query
         self.index_model = sys.MODELS_REGISTERED.get(self.doc.get(constant.FIELD_NAME_MODEL), None)
         self._meta = self.index_model._meta
+        self.meta = self._meta
 
         # attach local_attrs, except '__unicode__'.
         func_unicode = None
@@ -678,6 +681,7 @@ class Document (object) :
 
         oo.__dict__.update(o.__dict__)
         oo.doc = self
+        oo.initialize()
 
         # Overwrite to_model, to_query, to_index
         __func_to_model = oo.to_model
@@ -715,7 +719,7 @@ class Document (object) :
             yield f
 
     def get_explanation (self) :
-        return self.explanation
+        return utils.add_unicode_function(self.explanation)
 
     def create_document_from_object (self, obj) :
         base = utils.Model.get_index_model(obj)

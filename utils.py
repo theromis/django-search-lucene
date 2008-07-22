@@ -48,6 +48,14 @@ class Model (object) :
     get_uid     = classmethod(get_uid)
     get_index_model    = classmethod(get_index_model)
 
+def add_unicode_function (obj) :
+    if hasattr(obj, "toString") :
+        setattr(obj, "__unicode__", obj.toString, )
+
+    return obj
+
+
+
 
 """
 Description

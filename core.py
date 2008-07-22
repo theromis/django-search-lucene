@@ -243,11 +243,7 @@ def initialize_index_models () :
     index_models = set(index_models)
     for s in index_models :
         name = utils.Model.get_name(s.Meta.model)
-        index_model = document.get_new_index_model(
-            s.Meta.model,
-            meta=s.Meta,
-        )()
-        sys.MODELS_REGISTERED[name] = index_model
+        sys.MODELS_REGISTERED[name] = s()
 
     sys.MODELS_REGISTERED.lock()
 
