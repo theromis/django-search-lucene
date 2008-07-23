@@ -17,7 +17,7 @@
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 """
 
-import unittest
+import sys, unittest
 
 import core, pylucene
 import models as models_tests
@@ -88,10 +88,6 @@ if __name__ == "__main__" :
     from django.conf import settings
 
     models.get_models()
-
-    core.register(models_tests.document)
-    core.register(models_tests.document0)
-    core.register(models_tests.document_without_index)
 
     settings.SEARCH_STORAGE_PATH = settings.SEARCH_STORAGE_PATH  + "_test"
     settings.SEARCH_STORAGE_TYPE = "ram"

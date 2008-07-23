@@ -28,8 +28,6 @@ import models as models_search
 import forms as forms_search
 
 import core, pylucene, utils, constant, document
-# Gathering and initializing registered models.
-core.initialize_index_models()
 
 def check_auth (func) :
     def wrapper (request, **kwargs) :

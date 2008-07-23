@@ -21,6 +21,7 @@ from django.conf import settings
 from django.db import models
 from django.db.models import Q
 
+import core
 import models as models_tests
 
 class ModelFilterQTestCase (unittest.TestCase):
@@ -55,14 +56,8 @@ class ModelFilterQTestCase (unittest.TestCase):
 
 
 if __name__ == "__main__" :
-    import core
 
-    from django.db import models
     models.get_models()
-
-    core.register(models_tests.document)
-    core.register(models_tests.document0)
-    core.register(models_tests.document_without_index)
 
     settings.SEARCH_STORAGE_PATH = settings.SEARCH_STORAGE_PATH  + "_test"
     settings.SEARCH_STORAGE_TYPE = "fs"

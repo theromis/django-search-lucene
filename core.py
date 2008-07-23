@@ -115,7 +115,7 @@ class IndexManager (object) :
         if not hasattr(self, "func_%s" % command) :
             return
 
-        initialize_index_models()
+        initialize()
         self.lock.writer_enters()
         if settings.DEBUG > 1 :
             print "\t Active thread writers:", self.lock.active_writers
@@ -126,14 +126,45 @@ class IndexManager (object) :
             self.lock.writer_leaves()
 
 class ModelsRegisteredDict (dict) :
-    candidates = dict()
     __lock = False
 
     def __init__ (self) :
         self.write_lock = threading.RLock()
 
-    def add (self, index_model) :
-        self[utils.Model.get_name(index_model.Meta.model)] = index_model()
+    def __setitem__ (self, k, v) :
+        if self.is_lock() : return
+
+        return super(ModelsRegisteredDict, self).__setitem__(k, v)
+
+    def add (self, index_model, force=False) :
+        if self.is_lock() : return
+
+        name = utils.Model.get_name(index_model.Meta.model)
+        if not force and self.has_key(name) :
+            return
+
+        self[name] = index_model()
+
+        # attach `create_index` method.
+        manager.MethodCreateIndex.analyze_model_manager(
+            self[name]._meta.model,
+        )
+
+        # attach signals
+        for sig in constant.SIGNALS :
+            signals.Signals.connect(
+                sig,
+                model=self[name]._meta.model,
+            )
+
+    def add_from_model (self, model, force=False) :
+        self.add(
+            document.get_new_index_model(model),
+            force=force,
+        )
+
+    def unlock (self) :
+        self.__lock = False
 
     def lock (self) :
         if self.__lock :
@@ -141,14 +172,6 @@ class ModelsRegisteredDict (dict) :
 
         self.write_lock.acquire()
         self.__lock = True
-
-        # merge candidates to normal(?)
-        for name, index_model in self.candidates.items() :
-            if not self.has_key(name) :
-                self[name] = index_model
-
-        # remove candidates
-        self.candidates.clear()
 
         # add default manager
         for name, index_model in self.items() :
@@ -163,58 +186,15 @@ class ModelsRegisteredDict (dict) :
     def is_lock (self) :
         return self.__lock
 
-    def add_candidate (self, name, index_model, ) :
-        if self.is_lock() :
-            return
-        self.candidates[name] = index_model
-
-    def has_candidate (self, name) :
-        return self.candidates.has_key(name)
-
 ######################################################################
 # Functions
-def register (model) :
-    name = utils.Model.get_name(model)
-    if sys.MODELS_REGISTERED.has_candidate(name) :
-        return
-
-    # analyze model and create new document index_model
-    o = document.get_new_index_model(model)()
-    sys.MODELS_REGISTERED.add_candidate(name, o)
-
-    # add 'create_index' method in model's managers.
-    manager.MethodCreateIndex.analyze_model_manager(model)
-
-    # attach signals
-    for sig in constant.SIGNALS :
-        signals.Signals.connect(sig, model=model)
-
-    if settings.DEBUG > 1 :
-        print
-        print "=================================================="
-        print ">> ", model
-
-        print "From model, --------------------------------------"
-        print "verbose_name: ", model._meta.verbose_name
-        print " object_name: ", model._meta.object_name
-        print " module_name: ", model._meta.module_name
-        print "   app_label: ", model._meta.app_label
-        print "          pk: ", model._meta.pk
-        print "From index_model, --------------------------------"
-        print "verbose_name: ", o._meta.verbose_name
-        print " object_name: ", o._meta.object_name
-        print " module_name: ", o._meta.module_name
-        print "   app_label: ", o._meta.app_label
-        print "  model_name: ", o._meta.model_name
-        print "          pk: ", o._meta.pk
-        print "      fields: ", o._meta.fields
-
-def initialize_index_models () :
+def initialize () :
     if sys.MODELS_REGISTERED.is_lock() :
         return
 
     mods = list()
     index_models = list()
+
     # gather the document index_models
     for model in models.get_models() :
         if mods.count(model.__module__) > 0 :
@@ -242,8 +222,7 @@ def initialize_index_models () :
 
     index_models = set(index_models)
     for s in index_models :
-        name = utils.Model.get_name(s.Meta.model)
-        sys.MODELS_REGISTERED[name] = s()
+        sys.MODELS_REGISTERED.add(s)
 
     sys.MODELS_REGISTERED.lock()
 
@@ -255,6 +234,12 @@ if not hasattr(sys, "MODELS_REGISTERED") :
 if not hasattr(sys, "INDEX_MANAGER") :
     sys.INDEX_MANAGER = IndexManager()
 
+if not hasattr(sys, "INDEX_MODELS_INITIAIZED") :
+    sys.INDEX_MODELS_INITIAIZED = False
+
+if not sys.INDEX_MODELS_INITIAIZED :
+    models.get_models()
+    initialize()
 
 
 """

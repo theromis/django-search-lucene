@@ -88,8 +88,6 @@ class PyLuceneThreadTestCase (unittest.TestCase):
 
 
 if __name__ == "__main__" :
-    core.register(models_tests.document, )
-
     settings.SEARCH_STORAGE_PATH = settings.SEARCH_STORAGE_PATH  + "_test"
     settings.SEARCH_STORAGE_TYPE = "fs"
     #settings.DEBUG = 2

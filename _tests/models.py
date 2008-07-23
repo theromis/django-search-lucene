@@ -80,7 +80,7 @@ class document0 (models.Model) :
 
     objects = models.Manager() # The default manager.
     objects_search = Manager()
-    objects_search_global = Manager(target_models=["document0", ], )
+    objects_search_global = Manager(target_models=None, )
 
 class document_without_index (models.Model) :
     class Meta :
@@ -172,6 +172,12 @@ def insert_documents (n, model=None) :
 
     return d
 
+
+sys.MODELS_REGISTERED.unlock()
+sys.MODELS_REGISTERED.add_from_model(document)
+sys.MODELS_REGISTERED.add_from_model(document0)
+sys.MODELS_REGISTERED.add_from_model(document_without_index)
+sys.MODELS_REGISTERED.lock()
 
 
 """

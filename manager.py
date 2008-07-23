@@ -29,6 +29,7 @@ class Manager (models.Manager) :
     def __init__ (self, target_models=Empty()) :
         super(Manager, self).__init__()
 
+        self.__target_models = None
         self.target_models = target_models
         self.manager_id = constant.METHOD_NAME_SEARCH
 
@@ -44,18 +45,25 @@ class Manager (models.Manager) :
                 else :
                     app_label = self.model._meta.app_label
 
-                __target_models.append(utils.Model.get_name_by_model_name(app_label, model_name, ))
+                __target_models.append("%s.%s" % (app_label, model_name, ))
 
             self.target_models = __target_models
 
-        # register model to search core.
-        if name != "__searcher__" :
-            signals.Signals.connect("class_prepared", model=model, )
+    def get_target_models (self) :
+        if self.target_models is None :
+            __models = sys.MODELS_REGISTERED.keys()
+        elif type(self.target_models) in (list, tuple, ) and len(self.target_models) > 0 :
+            __models = self.target_models
+        else :
+            __models = [utils.Model.get_name(self.model), ]
+
+        return __models
 
     def get_query_set(self):
         import core
-        core.initialize_index_models()
-        return queryset.QuerySet(self.model, target_models=self.target_models)
+        core.initialize()
+
+        return queryset.QuerySet(self.model, target_models=self.get_target_models())
 
     def raw_query (self, *args, **kwargs) :
         return self.get_query_set().raw_query(*args, **kwargs)

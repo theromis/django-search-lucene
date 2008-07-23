@@ -17,7 +17,7 @@
 
 import re, sys, unittest, datetime, random
 
-import core, pylucene
+import core, pylucene, document
 import models as models_tests
 
 class ModelFilterTestCase (unittest.TestCase) :
@@ -263,9 +263,15 @@ if __name__ == "__main__" :
     from django.conf import settings
 
     models.get_models()
-    core.register(models_tests.document)
-    core.register(models_tests.document0)
-    core.register(models_tests.document_without_index)
+    #core.register(models_tests.document)
+    #core.register(models_tests.document0)
+    #core.register(models_tests.document_without_index)
+    sys.MODELS_REGISTERED.unlock()
+    sys.MODELS_REGISTERED.add_from_model(models_tests.document)
+    sys.MODELS_REGISTERED.add_from_model(models_tests.document0)
+    sys.MODELS_REGISTERED.add_from_model(models_tests.document_without_index)
+
+    sys.MODELS_REGISTERED.lock()
 
     settings.SEARCH_STORAGE_PATH = settings.SEARCH_STORAGE_PATH  + "_test"
     settings.SEARCH_STORAGE_TYPE = "fs"

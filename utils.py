@@ -24,6 +24,9 @@ from django.db.models.base import ModelBase
 class Model (object) :
 
     def get_name (self, model) :
+        if not model :
+            return None
+
         return self.get_name_by_model_name(
             model._meta.app_label,
             model._meta.object_name,
@@ -31,6 +34,15 @@ class Model (object) :
 
     def get_name_by_model_name (self, app_label, model_name) :
         return "%s.%s" % (app_label, model_name)
+
+    def get_model_by_index_model_name (self, app_label, model_index_name) :
+        o = __import__("%s.models" % app_label, {}, {}, ["models", ])
+        if not hasattr(o, model_index_name) :
+            return None
+        else :
+            return getattr(o, model_index_name).Meta.model
+
+    get_model_by_index_model_name = classmethod(get_model_by_index_model_name)
 
     def get_uid (self, model, pk) :
         return "%s/%s" % (self.get_name(model), pk, )

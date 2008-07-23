@@ -48,7 +48,7 @@ class Signals (object) :
 
     def post_save (self, instance=None, sender=None, created=False, **kwargs) :
         import core
-        core.initialize_index_models()
+        core.initialize()
 
         index_model = sys.MODELS_REGISTERED.get(utils.Model.get_name(instance), None)
         if created :
@@ -73,10 +73,6 @@ class Signals (object) :
         if index_model._meta.casecade_delete :
             sys.INDEX_MANAGER.unindex(instance)
 
-    def class_prepared (self, sender=None, *args, **kwargs) :
-        import core
-        core.register(sender)
-
     def request_started (self, *args, **kwargs) :
         pylucene.initialize_vm()
 
@@ -87,7 +83,6 @@ class Signals (object) :
     post_save           = classmethod(post_save)
     pre_delete          = classmethod(pre_delete)
     post_delete         = classmethod(post_delete)
-    class_prepared      = classmethod(class_prepared)
     request_started     = classmethod(request_started)
     request_finished    = classmethod(request_finished)
 
