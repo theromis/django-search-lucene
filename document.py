@@ -163,6 +163,9 @@ class FieldBase (object) :
     def initialize (self) :
         self.highlighter = dict()
 
+    def __unicode__ (self) :
+        return u"%s" % self.__class__.__name__
+
     def get_value_from_object (self, obj, name) :
         if self.func_get_value_from_object :
             return self.func_get_value_from_object(obj, name)
@@ -265,11 +268,15 @@ class Fields (object) :
     class Sort (object) :
         analyzer = lucene.KeywordAnalyzer()
         def __init__ (self, field, ) :
+            self.class_name = self.__class__.__name__
             self.field = field
             self.name = "sort__%s" % field.name
             self.store = False
             self.tokenize = False
             self.abstract = True
+
+        def __unicode__ (self) :
+            return u"%s" % self.__class__.__name__
 
         def to_model (self, v, **kwargs) :
             return unicode(v)
@@ -525,8 +532,6 @@ class Meta (object) :
         for i in dir(index_model) :
             pass # not implemented
 
-        self.fields_ordering = tuple(self.fields_ordering) # make it immutable.
-
         ##################################################
         # Add default fields
         # pk field
@@ -537,6 +542,7 @@ class Meta (object) :
                 abstract=True,
             )
             self.fields[constant.FIELD_NAME_PK] = pk_field
+            self.fields_ordering.append(pk_field.name)
 
         # uid field
         self.fields[constant.FIELD_NAME_UID] = Fields.Keyword(
@@ -556,8 +562,14 @@ class Meta (object) :
         self.fields[constant.FIELD_NAME_UNICODE] = Fields.Keyword(
             constant.FIELD_NAME_UNICODE,
             func_get_value_from_object=lambda obj, name : unicode(obj),
-            abstract=False,
+            abstract=True,
         )
+
+        self.fields_ordering.append(self.fields[constant.FIELD_NAME_UID].name)
+        self.fields_ordering.append(self.fields[constant.FIELD_NAME_MODEL].name)
+        self.fields_ordering.append(self.fields[constant.FIELD_NAME_UNICODE].name)
+
+        self.fields_ordering = tuple(self.fields_ordering) # make it immutable.
 
     def translate_model_field_to_index_field (self, field) :
         _f = None
@@ -578,6 +590,15 @@ class Meta (object) :
 
     def get_field (self, name) :
         return self.fields.get(name, None)
+
+    def get_fields (self, abstract=None, ) :
+        for name in self.fields_ordering :
+            f = self.get_field(name)
+            if abstract is not None :
+                if not abstract and f.abstract : continue
+                if abstract and not f.abstract : continue
+
+            yield f
 
 class IndexModel (object) :
     class Meta :

@@ -23,6 +23,55 @@
 <div class="module">
 {% include "__search_admin_search_form.html" %}
 
+<div class="module">
+	<h2
+		style="
+			cursor: pointer;
+		"
+		onclick='
+var ul = document.getElementById("search-model-fields");
+var label = "";
+if (ul.style.display == "none")
+{
+	 label = "&rsaquo;&rsaquo; {% trans "Hide Fields" %}";
+    ul.style.display = "";
+} else {
+	 label = "&rsaquo;&rsaquo; {% trans "Show Fields" %}";
+    ul.style.display = "none";
+}
+this.innerHTML = label;
+return false;
+		'
+	>&rsaquo;&rsaquo; {% trans "Show Fields" %}</h2>
+
+  	<table width="100%" class="fields" id="search-model-fields"
+		style="
+			display: none;
+		"
+	>
+  	<thead>
+  	<tr>
+  		<td>{% trans "Name" %}</td>
+  		<td>{% trans "Type" %}</td>
+  		<td>{% trans "Store?" %}</td>
+  		<td>{% trans "Tokenize?" %}</td>
+  	</tr>
+  	</thead>
+  	{% for f in opts_model.get_meta.get_fields %}
+  	<tr
+  	{% if f.abstract %}
+  		class="abstract"
+  	{% endif %}
+  	>
+  		<th>{{f.name}}:</th>
+  		<td>{{f}}</td>
+  		<td>{{f.store|yesno}}</td>
+  		<td>{{f.tokenize|yesno}}</td>
+  	</tr>
+  	{% endfor %}
+  	</table>
+</div>
+
 <!-- object list begin -->
 <table cellspacing="0" width="100%">
 <thead>
@@ -84,5 +133,6 @@ return true;
             '
         >{% trans 'Remove All indexed objects' %}</a></h3>
     </div>
+
 </div>
 {% endblock %}
