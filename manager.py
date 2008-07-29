@@ -21,43 +21,46 @@ from django.conf import settings
 from django.db import models
 from django.db.models.query import QuerySet as queryset_django
 from django.db.models.manager import Manager as manager_django
-from django.db.models.sql.datastructures import Empty
 
 import constant, queryset, signals, utils
 
 class Manager (models.Manager) :
-    def __init__ (self, target_models=Empty()) :
+    __target_models = tuple()
+    target_models_cached = None
+
+    def __init__ (self, *target_models, **kwargs) :
         super(Manager, self).__init__()
 
-        self.__target_models = None
-        self.target_models = target_models
+        self.__target_models = target_models
+        self.target_models_cached = None
         self.manager_id = constant.METHOD_NAME_SEARCH
 
     def contribute_to_class (self, model, name) :
         super(Manager, self).contribute_to_class(model, name)
 
-        # parse target_models
-        if type(self.target_models) in (list, tuple, ) and len(self.target_models) > 0 :
-            __target_models = list()
-            for model_name in self.target_models :
-                if model_name.count(".") > 0 :
-                    (app_label, model_name, ) = model_name.split(".", 1)
-                else :
-                    app_label = self.model._meta.app_label
-
-                __target_models.append("%s.%s" % (app_label, model_name, ))
-
-            self.target_models = __target_models
-
     def get_target_models (self) :
-        if self.target_models is None :
-            __models = sys.MODELS_REGISTERED.keys()
-        elif type(self.target_models) in (list, tuple, ) and len(self.target_models) > 0 :
-            __models = self.target_models
-        else :
-            __models = [utils.Model.get_name(self.model), ]
+        if self.target_models_cached is None :
+            # parse target_models
+            if None in set(self.__target_models) :
+                __models = sys.MODELS_REGISTERED.keys()
+            elif type(self.__target_models) in (list, tuple, ) and len(self.__target_models) > 0 :
+                __target_models = list()
+                for model_name in self.__target_models :
+                    if model_name.count(".") > 0 :
+                        (app_label, model_name, ) = model_name.split(".", 1)
+                    else :
+                        app_label = self.model._meta.app_label
 
-        return __models
+                    __target_models.append("%s.%s" % (app_label, model_name, ))
+
+                if len(__target_models) > 0 :
+                    __models = __target_models
+            else :
+                __models = [utils.Model.get_name(self.model),] # use only this models.
+
+            self.target_models_cached = __models
+
+        return self.target_models_cached
 
     def get_query_set(self):
         import core

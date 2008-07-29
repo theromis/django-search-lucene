@@ -20,7 +20,6 @@ import sys, traceback
 from django.db import models, connection
 from django.db.models import sql, ObjectDoesNotExist
 from django.db.models.sql import constants
-from django.db.models.sql.datastructures import Empty
 from django.db.models.sql.query import get_order_dir
 
 from models_sql_where import WhereNode
@@ -31,9 +30,9 @@ lucene = constant.import_lucene()
 class Query (sql.Query) :
     raw_queries = list()
     _query_cache = None
-    target_models = Empty()
+    target_models = tuple()
 
-    def __init__ (self, model, connection, where=WhereNode, target_models=Empty()) :
+    def __init__ (self, model, connection, where=WhereNode, target_models=tuple()) :
         super(Query, self).__init__(model, connection, where=WhereNode)
         self.where.set_model(self.model)
         self.target_models = target_models
@@ -77,30 +76,15 @@ class Query (sql.Query) :
                         constant.QUERY_BOOLEANS.get("AND"),
                     )
 
-            if self.target_models is None :
-                __models = sys.MODELS_REGISTERED.keys()
-            elif type(self.target_models) in (list, tuple, ) and len(self.target_models) > 0 :
-                __models = self.target_models
-            else :
-                __models = [self.index_model._meta.model_name, ]
-
-            if len(__models) < 2 :
-                _query.add(
+            subquery = pylucene.BooleanQuery()
+            for i in self.target_models :
+                subquery.add(
                     pylucene.TermQuery(
-                        pylucene.Term.new(constant.FIELD_NAME_MODEL, __models[0])
+                        pylucene.Term.new(constant.FIELD_NAME_MODEL, i)
                     ),
-                    constant.QUERY_BOOLEANS.get("AND"),
+                    constant.QUERY_BOOLEANS.get("OR"),
                 )
-            else :
-                subquery = pylucene.BooleanQuery()
-                for i in __models :
-                    subquery.add(
-                        pylucene.TermQuery(
-                            pylucene.Term.new(constant.FIELD_NAME_MODEL, i)
-                        ),
-                        constant.QUERY_BOOLEANS.get("OR"),
-                    )
-                _query.add(subquery, constant.QUERY_BOOLEANS.get("OR"), )
+            _query.add(subquery, constant.QUERY_BOOLEANS.get("AND"), )
 
             self._query_cache = (_query, _ordering, )
 

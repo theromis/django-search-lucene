@@ -21,7 +21,6 @@ from django.conf import settings
 from django.db import connection
 from django.db.models import ObjectDoesNotExist
 from django.db.models.query import QuerySet as QuerySet_django
-from django.db.models.sql.datastructures import Empty
 
 from models_sql_query import Query
 
@@ -33,8 +32,9 @@ class QuerySet (QuerySet_django) :
     _order = None
     _in_bulk = False
     flat = False
+    target_models = tuple()
 
-    def __init__ (self, model=None, query=None, target_models=Empty()) :
+    def __init__ (self, model=None, query=None, target_models=tuple()) :
         super(QuerySet, self).__init__(model=model, query=query)
 
         self.target_models = target_models
