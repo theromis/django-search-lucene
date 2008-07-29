@@ -127,8 +127,10 @@ class IndexManager (object) :
 
 class ModelsRegisteredDict (dict) :
     __lock = False
+    candidate = dict()
 
     def __init__ (self) :
+        self.candidate = dict()
         self.write_lock = threading.RLock()
 
     def __setitem__ (self, k, v) :
@@ -143,19 +145,7 @@ class ModelsRegisteredDict (dict) :
         if not force and self.has_key(name) :
             return
 
-        self[name] = index_model()
-
-        # attach `create_index` method.
-        manager.MethodCreateIndex.analyze_model_manager(
-            self[name]._meta.model,
-        )
-
-        # attach signals
-        for sig in constant.SIGNALS :
-            signals.Signals.connect(
-                sig,
-                model=self[name]._meta.model,
-            )
+        self.candidate[name] = index_model
 
     def add_from_model (self, model, force=False) :
         self.add(
@@ -163,28 +153,46 @@ class ModelsRegisteredDict (dict) :
             force=force,
         )
 
+    def is_lock (self) :
+        return self.__lock
+
     def unlock (self) :
         self.__lock = False
 
     def lock (self) :
-        if self.__lock :
-            return
+        if self.is_lock() : return
 
         self.write_lock.acquire()
         self.__lock = True
 
         # add default manager
-        for name, index_model in self.items() :
-            setattr(index_model._meta.model, constant.METHOD_NAME_SEARCH, manager.Manager(), )
-            index_model._meta.model.__searcher__.contribute_to_class(
-                index_model._meta.model,
+        for name, index_model in self.candidate.items() :
+            __index_model = index_model()
+            setattr(
+                __index_model._meta.model,
+                constant.METHOD_NAME_SEARCH, manager.Manager(),
+            )
+            __index_model._meta.model.__searcher__.contribute_to_class(
+                __index_model._meta.model,
                 constant.METHOD_NAME_SEARCH,
             )
 
-        self.write_lock.release()
+            # attach `create_index` method.
+            manager.MethodCreateIndex.analyze_model_manager(
+                __index_model._meta.model,
+            )
 
-    def is_lock (self) :
-        return self.__lock
+            # attach signals
+            for sig in constant.SIGNALS :
+                signals.Signals.connect(
+                    sig,
+                    model=__index_model._meta.model,
+                )
+
+            super(ModelsRegisteredDict, self).__setitem__(name, __index_model)
+
+        self.candidate.clear()
+        self.write_lock.release()
 
 ######################################################################
 # Functions

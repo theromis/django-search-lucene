@@ -35,8 +35,8 @@ class Manager (models.Manager) :
         self.target_models_cached = None
         self.manager_id = constant.METHOD_NAME_SEARCH
 
-    def contribute_to_class (self, model, name) :
-        super(Manager, self).contribute_to_class(model, name)
+    #def contribute_to_class (self, model, name) :
+    #    super(Manager, self).contribute_to_class(model, name)
 
     def get_target_models (self) :
         if self.target_models_cached is None :

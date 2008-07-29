@@ -61,7 +61,7 @@ class document (models.Model) :
 
     objects = models.Manager() # The default manager.
     objects_search = Manager()
-    objects_search_global = Manager(target_models=None, )
+    objects_search_global = Manager(None, )
 
 class document0 (models.Model) :
     class Meta :
@@ -80,7 +80,7 @@ class document0 (models.Model) :
 
     objects = models.Manager() # The default manager.
     objects_search = Manager()
-    objects_search_global = Manager(target_models=None, )
+    objects_search_global = Manager(None, )
 
 class document_without_index (models.Model) :
     class Meta :
@@ -99,7 +99,7 @@ class document_without_index (models.Model) :
 
     objects = models.Manager() # The default manager.
     objects_search = Manager()
-    objects_search_global = Manager(target_models=["document0", ], )
+    objects_search_global = Manager("document0", )
 
     def save (self) :
         super(document_without_index, self).save_base(cls=self)
