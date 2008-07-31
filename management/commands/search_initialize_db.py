@@ -41,6 +41,7 @@ class Command (NoArgsCommand) :
             print "\t[EE] search index directory, %s must be writable." % __storage_path
             return
         else :
+            fd.close()
             os.remove(os.path.join(__storage_path, ".tmp"))
 
         print "< Found search index db."
