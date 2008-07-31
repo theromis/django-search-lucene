@@ -20,7 +20,7 @@
 import sys, unittest
 from django.conf import settings
 
-import document, utils
+import core, document, utils
 
 import models as models_tests
 
@@ -55,10 +55,6 @@ if __name__ == "__main__" :
 
     from django.db import models
     models.get_models()
-
-    core.register(models_tests.document)
-    core.register(models_tests.document0)
-    core.register(models_tests.document_without_index)
 
     # set index model
     class documentShape (document.IndexModel) :
