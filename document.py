@@ -131,6 +131,7 @@ class FieldBase (object) :
     store                       = True
     terms                       = None
     tokenize                    = True
+    has_terms                   = False
 
     def __init__ (
                 self,
@@ -205,6 +206,9 @@ class FieldBase (object) :
         return unicode(v)
 
     def get_terms (self) :
+        if not self.has_terms :
+            return list()
+
         if not self.doc :
             return list()
 
@@ -293,6 +297,7 @@ class Fields (object) :
 
     class Text (FieldBase) :
         analyzer = lucene.WhitespaceAnalyzer()
+        has_terms = True
 
     class Integer (FieldBase) :
         tokenize = False
@@ -328,6 +333,7 @@ class Fields (object) :
     class MultiKeyword (FieldBase) :
         tokenize = False
         analyzer = lucene.KeywordAnalyzer()
+        has_terms = True
 
         def to_index (self, v, obj=None) :
             return [
@@ -381,6 +387,7 @@ class Fields (object) :
     ##################################################
     # Django native model fields
     class File (MultiKeyword) :
+        has_terms = True
         def __init__ (self, *args, **kwargs) :
             kwargs.update(
                 {
@@ -390,6 +397,7 @@ class Fields (object) :
             super(Fields.File, self).__init__(*args, **kwargs)
 
     class FilePath (MultiKeyword) :
+        has_terms = True
         def __init__ (self, *args, **kwargs) :
             kwargs.update(
                 {
@@ -399,6 +407,7 @@ class Fields (object) :
             super(Fields.FilePath, self).__init__(*args, **kwargs)
 
     class Image (MultiKeyword) :
+        has_terms = True
         def __init__ (self, *args, **kwargs) :
             kwargs.update(
                 {
@@ -408,6 +417,7 @@ class Fields (object) :
             super(Fields.Image, self).__init__(*args, **kwargs)
 
     class URL (MultiKeyword) :
+        has_terms = True
         def __init__ (self, *args, **kwargs) :
             kwargs.update(
                 {
@@ -417,6 +427,7 @@ class Fields (object) :
             super(Fields.URL, self).__init__(*args, **kwargs)
 
     class Email (MultiKeyword) :
+        has_terms = True
         def __init__ (self, *args, **kwargs) :
             kwargs.update(
                 {
