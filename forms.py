@@ -17,7 +17,7 @@
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 """
 
-from django import newforms as forms
+from django import forms
 from django.utils.translation import ugettext as _
 
 class Search (forms.Form) :

@@ -26,6 +26,9 @@ class Search (models.Model) :
     class Admin :
         pass
 
+from django.contrib import admin
+admin.site.register(Search)
+
 
 
 """
