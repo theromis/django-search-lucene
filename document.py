@@ -123,14 +123,18 @@ class IndexField (object) :
     class XML                   (__INDEXFIELDBASE__) : pass
 
 class FieldBase (object) :
-    abstract                    = False
+    ##################################################
+    # Options
     analyzer                    = lucene.WhitespaceAnalyzer()
     func_get_value_from_object  = None
+    store                       = True
+    tokenize                    = True
+    ##################################################
+
+    abstract                    = False
     highlighter                 = dict()
     name                        = None
-    store                       = True
     terms                       = None
-    tokenize                    = True
     has_terms                   = False
 
     def __init__ (
@@ -457,8 +461,9 @@ class Meta (object) :
     verbose_name        = None
     verbose_name_plural = None
     analyzer            = lucene.WhitespaceAnalyzer()
-    field_analyzers     = dict()
     ##################################################
+
+    field_analyzers     = dict()
 
     app_label           = None
     module_name         = None
