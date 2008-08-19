@@ -23,7 +23,7 @@ from django.conf import settings
 from django.contrib.webdesign import lorem_ipsum
 from django.contrib.webdesign.lorem_ipsum import words, paragraphs
 from django.core.management.color import no_style
-from django.core.management.sql import sql_model_create, sql_reset
+#from django.core.management.sql import sql_model_create
 from django.db import models, connection
 
 lorem_ipsum.WORDS = [
@@ -150,7 +150,7 @@ def insert_documents (n, model=None) :
         pass
 
     # create table
-    sql, params = sql_model_create(model, no_style())
+    sql, params = connection.creation.sql_create_model(model, no_style())
     cursor.execute(sql[0])
 
     #core.register(model, )

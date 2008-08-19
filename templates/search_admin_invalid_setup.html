@@ -19,7 +19,15 @@
 
 {% if exception %}
 <h2>Exception was,</h2>
-    <pre>{{exception.message}}</pre>
+    <pre
+	 	style="
+			border: 1px dashed gray;
+			height: 3em;
+			overflow-x: auto;
+			padding: 0.5em;
+			width: 99%;
+		"
+	 >{{exception.message}}</pre>
 {% endif %}
 
 </div>

@@ -23,7 +23,7 @@ from django.conf import settings
 from django.template import TemplateSyntaxError
 from django.utils.translation import ugettext as _
 
-import pylucene
+import pylucene, constant
 
 import views as views_searcher
 import models as models_search
@@ -41,7 +41,7 @@ class LuceneMiddleware (object) :
             exception_title = ""
             exception_description = ""
 
-            if hasattr(exception, "exc_info") and exception.exc_info[0] == pylucene.StorageException :
+            if hasattr(exception, "exc_info") and exception.exc_info[0] == constant.StorageException :
                 exception_title = _("Search storage is not found or broken.")
                 exception_description = _("""
 Re-initialize your search storage,

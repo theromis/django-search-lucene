@@ -19,7 +19,8 @@
 
 import re
 
-from django.db.models import fields as fields_django
+from django.core.exceptions import ImproperlyConfigured
+from django.db import models as models_django
 
 def import_lucene () :
     try :
@@ -31,6 +32,13 @@ def import_lucene () :
             import PyLucene as lucene
         except :
             raise ImportError, "Install PyLucene module. Visit http://pylucene.osafoundation.org/."
+    else :
+        from django.conf import settings
+        if not hasattr(settings, "SEARCH_STORAGE_PATH") :
+            raise ImproperlyConfigured, """Set the "SEARCH_STORAGE_PATH" in settings.py"""
+
+        if not hasattr(settings, "SEARCH_STORAGE_TYPE") :
+            settings.SEARCH_STORAGE_TYPE = "fs"
 
     return lucene
 
@@ -88,56 +96,56 @@ FIELD_NAME_UNICODE = "__unicode__"  # string returns of object
 RE_INDEX_MODEL_FIELD_NAME = re.compile("Field$")
 
 FIELDS_TEXT = (
-    fields_django.CharField,
-    fields_django.TextField,
-    fields_django.XMLField,
+    models_django.CharField,
+    models_django.TextField,
+    models_django.XMLField,
 )
 
 FIELDS_SKIP_TO_SORT = (
-    fields_django.TextField,
-    fields_django.XMLField,
+    models_django.TextField,
+    models_django.XMLField,
 )
 
 FIELDS_INT = (
-    fields_django.SmallIntegerField,
-    fields_django.PositiveSmallIntegerField,
-    fields_django.PositiveIntegerField,
-    fields_django.IntegerField,
-    fields_django.AutoField,
+    models_django.SmallIntegerField,
+    models_django.PositiveSmallIntegerField,
+    models_django.PositiveIntegerField,
+    models_django.IntegerField,
+    models_django.AutoField,
 )
 
 FIELDS_FLOAT = (
-    fields_django.FloatField,
+    models_django.FloatField,
 )
 
 FIELDS_DECIMAL = (
-    fields_django.DecimalField,
+    models_django.DecimalField,
 )
 
 FIELDS_BOOLEAN = (
-    fields_django.NullBooleanField,
-    fields_django.BooleanField,
+    models_django.NullBooleanField,
+    models_django.BooleanField,
 )
 
 FIELDS_DATETIME = (
-    fields_django.DateField,
-    fields_django.DateTimeField,
+    models_django.DateField,
+    models_django.DateTimeField,
 )
 FIELDS_TIME = (
-    fields_django.TimeField,
+    models_django.TimeField,
 )
 
 FIELDS_MULTI_KEYWORD = (
-    fields_django.FileField,
-    fields_django.FilePathField,
-    fields_django.ImageField,
-    fields_django.URLField,
-    fields_django.EmailField,
+    models_django.FileField,
+    models_django.FilePathField,
+    models_django.ImageField,
+    models_django.URLField,
+    models_django.EmailField,
 )
 
 FIELDS_KEYWORD = (
-    fields_django.USStateField,
-    fields_django.SlugField,
+    models_django.USStateField,
+    models_django.SlugField,
 )
 
 # set the fore/background color of highlighted strings in search result. Reference to  http://lucene.apache.org/java/2_3_2/api/org/apache/lucene/search/highlight/SpanGradientFormatter.html

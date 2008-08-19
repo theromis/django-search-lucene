@@ -21,7 +21,6 @@ import sys
 
 from django.core import signals as signals_core
 from django.db.models import signals
-from django.dispatch import dispatcher
 
 import pylucene, utils
 
@@ -29,16 +28,13 @@ class Signals (object) :
 
     def connect (self, signal_name, model=None) :
         if signal_name.startswith("request_") :
-            dispatcher.connect(
+            getattr(signals_core, signal_name).connect(
                 getattr(self, signal_name),
-                signal=getattr(signals_core, signal_name),
             )
         else :
-            dispatcher.connect(
+            getattr(signals, signal_name).connect(
                 getattr(self, signal_name),
                 sender=model,
-                signal=getattr(signals, signal_name),
-                weak=False,
             )
 
     connect =     classmethod(connect)
