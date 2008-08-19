@@ -17,10 +17,12 @@
 
 import sys, traceback
 
+from django.core.exceptions import FieldError
 from django.db import models, connection
 from django.db.models import sql, ObjectDoesNotExist
 from django.db.models.sql import constants
 from django.db.models.sql.query import get_order_dir
+from django.db.models.sql.where import AND, OR
 
 from models_sql_where import WhereNode
 import utils, constant, pylucene
@@ -32,16 +34,18 @@ class Query (sql.Query) :
     _query_cache = None
     target_models = tuple()
 
-    def __init__ (self, model, connection, where=WhereNode, target_models=tuple()) :
-        super(Query, self).__init__(model, connection, where=WhereNode)
-        self.where.set_model(self.model)
+    def __init__ (self, index_model, connection, where=WhereNode, target_models=tuple()) :
+        super(Query, self).__init__(index_model, connection, where=WhereNode)
+        self.index_model = index_model
+        self.where.set_model(self.index_model)
         self.target_models = target_models
         self.raw_queries = list()
 
     def clone(self, klass=None, **kwargs):
         clone = super(Query, self).clone(klass=klass, **kwargs)
 
-        clone.where.set_model(self.model)
+        clone.where.set_model(self.index_model)
+        clone.index_model = self.index_model
         clone.raw_queries = self.raw_queries
         clone.target_models = self.target_models
         return clone
@@ -54,13 +58,37 @@ class Query (sql.Query) :
         self._query_cache = None
         return super(Query, self).add_q(*args, **kwargs)
 
+    def add_filter(self, filter_expr, connector=AND, negate=False, trim=False, can_reuse=None):
+        arg, value = filter_expr
+        parts = [i for i in constant.LOOKUP_SEP.split(arg) if i.strip()]
+        if not parts:
+            raise FieldError("Cannot parse keyword query %r" % arg)
+
+        # Work out the lookup type and remove it from "parts", if necessary.
+        field = parts[0]
+        if len(parts) == 1 or parts[-1] not in self.query_terms:
+            lookup_type = "exact"
+        else:
+            lookup_type = parts.pop()
+
+        # Interpret "__exact=None" as the sql "is NULL"; otherwise, reject all
+        # uses of None as a query value.
+        if value is None:
+            if lookup_type != "exact":
+                raise ValueError("Cannot use None as a query value")
+            lookup_type = "isnull"
+            value = True
+        elif callable(value):
+            value = value()
+
+        #alias = self.get_initial_alias()
+        self.where.add((None, field, field, lookup_type, value), connector)
+
     def add_raw_query (self, query) :
         self.raw_queries.append(query)
         self._query_cache = None
 
     def as_sql (self, with_limits=True, with_col_aliases=False):
-        self.index_model = utils.Model.get_index_model(self.model)
-
         if not self._query_cache :
             _query = self.where.as_sql(pylucene.BooleanQuery(), qn=self.quote_name_unless_alias)
             _ordering = self.get_ordering()
@@ -107,8 +135,6 @@ class Query (sql.Query) :
     def get_ordering (self) :
         if self.order_by :
             ordering = self.order_by
-        elif not self.index_model._meta.ordering :
-            ordering = self.model._meta.ordering
         else :
             ordering = self.index_model._meta.ordering
 

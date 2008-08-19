@@ -18,6 +18,7 @@
 import datetime, traceback
 
 from django.conf import settings
+from django.core.exceptions import FieldError
 from django.db import models, connection
 from django.db.models.query_utils import QueryWrapper
 from django.db.models.sql.datastructures import EmptyResultSet, FullResultSet
@@ -54,8 +55,8 @@ class WhereNode (where.WhereNode, tree.Node) :
 
     model = None
 
-    def set_model (self, model) :
-        self.model = model
+    def set_model (self, index_model) :
+        self.index_model = index_model
 
     def as_sql(self, query, node=None, qn=None) :
         if node is None:
@@ -66,7 +67,6 @@ class WhereNode (where.WhereNode, tree.Node) :
         if not node.children:
             return None
 
-        self.index_model = utils.Model.get_index_model(self.model)
         subquery = None
         queries = list()
         empty = True
@@ -76,7 +76,7 @@ class WhereNode (where.WhereNode, tree.Node) :
         for child in node.children:
             try:
                 if hasattr(child, "as_sql") :
-                    child.set_model(self.model)
+                    child.set_model(self.index_model)
                     sql = child.as_sql(query, qn=qn)
                 elif isinstance(child, tree.Node) :
                     sql = self.as_sql(query, node=child, qn=qn)
@@ -140,12 +140,7 @@ class WhereNode (where.WhereNode, tree.Node) :
             return
 
         alias, col, field, lookup_type, value = data
-        if field:
-            params = field.get_db_prep_lookup(lookup_type, value)
-            db_type = field.db_type()
-        else:
-            params = Field().get_db_prep_lookup(lookup_type, value)
-            db_type = None
+
         if isinstance(value, datetime.datetime):
             annotation = datetime.datetime
         else:
@@ -154,72 +149,76 @@ class WhereNode (where.WhereNode, tree.Node) :
         tree.Node.add(self, (alias, col, field, lookup_type, annotation, value), connector)
 
     def make_atom (self, child, qn) :
-        table_alias, name, field, lookup_type, value_annot, value = child
+        table_alias, name, _field, lookup_type, value_annot, value = child
 
         subquery = None
         if lookup_type in LOOKUP_TYPE_SINGLE_VALUE :
             if type(value) in (list, tuple, ) :
                 value = value[0]
 
-            value = self.index_model._meta.get_field(name).to_query(value)
+            field = self.index_model._meta.get_field(name)
+            if field is None :
+                raise FieldError("Invalid field name: '%s'" % name)
+
+            value = field.to_query(value)
 
             ######################################################################
             # value is <str>
             if lookup_type in ("search", "contains", "icontains", ) :
                 subquery = pylucene.RegexQuery(
                     self.get_term(
-                        field.name,
+                        name,
                         "%s" % (lookup_type == "icontains" and value.lower() or value),
                     )
                 )
             elif lookup_type in ("regex", "iregex", ) :
                 subquery = pylucene.RegexQuery(
                     self.get_term(
-                        field.name,
+                        name,
                         lookup_type == "iregex" and value.lower() or value
                     )
                 )
             elif lookup_type in ("startswith", "istartswith", ) :
                 subquery = pylucene.RegexQuery(
                     self.get_term(
-                        field.name,
+                        name,
                         "^(%s)" % (lookup_type == "istartswith" and value.lower() or value),
                     )
                 )
             elif lookup_type in ("endswith", "iendswith", ) :
                 subquery = pylucene.RegexQuery(
                     self.get_term(
-                        field.name,
+                        name,
                         "%s$" % (lookup_type == "iendswith" and value.lower() or value),
                     )
                 )
             elif lookup_type in ("lt", "lte", ) :
                 subquery = pylucene.RangeQuery(
                     None,
-                    self.get_term(field.name, value),
+                    self.get_term(name, value),
                     False,
                 )
             elif lookup_type in ("gt", "gte", ) :
                 subquery = pylucene.RangeQuery(
-                    self.get_term(field.name, value),
+                    self.get_term(name, value),
                     None,
                     False,
                 )
             elif lookup_type in ("exact", "iexact", ) :
                 value = lookup_type == "iexact" and value.lower() or value
-                subquery = pylucene.TermQuery(self.get_term(field.name, value))
+                subquery = pylucene.TermQuery(self.get_term(name, value))
             elif lookup_type == "year" :
                 subquery = pylucene.RegexQuery(
-                    self.get_term(field.name, "^%s" % value),
+                    self.get_term(name, "^%s" % value),
                 )
             elif lookup_type in ("month", "day") :
                 value = "%02d" % int(value)
                 subquery = pylucene.RegexQuery(
-                    self.get_term(field.name, "^[\d]{4}[\d]{2}%s" % value),
+                    self.get_term(name, "^[\d]{4}[\d]{2}%s" % value),
                 )
             elif lookup_type == "isnull":
                 subquery = pylucene.RegexQuery(
-                    self.get_term(field.name, "^$")
+                    self.get_term(name, "^$")
                 )
 
         elif type(value) in (list, tuple, ) :
@@ -227,15 +226,15 @@ class WhereNode (where.WhereNode, tree.Node) :
             if lookup_type == "range" :
                 values.sort()
                 subquery = pylucene.RangeQuery(
-                    self.get_term(field.name, values[0]),
-                    self.get_term(field.name, values[1]),
+                    self.get_term(name, values[0]),
+                    self.get_term(name, values[1]),
                     False,
                 )
             elif lookup_type == "in" :
                 subquery = pylucene.BooleanQuery()
                 for i in values :
                     subquery.add(
-                        pylucene.TermQuery(self.get_term(field.name, i)),
+                        pylucene.TermQuery(self.get_term(name, i)),
                         constant.QUERY_BOOLEANS.get("OR"),
                     )
 

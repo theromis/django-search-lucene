@@ -35,8 +35,8 @@ class Manager (models.Manager) :
         self.target_models_cached = None
         self.manager_id = constant.METHOD_NAME_SEARCH
 
-    #def contribute_to_class (self, model, name) :
-    #    super(Manager, self).contribute_to_class(model, name)
+    def contribute_to_class(self, index_model, name):
+        self.index_model = index_model
 
     def get_target_models (self) :
         if self.target_models_cached is None :
@@ -49,14 +49,14 @@ class Manager (models.Manager) :
                     if model_name.count(".") > 0 :
                         (app_label, model_name, ) = model_name.split(".", 1)
                     else :
-                        app_label = self.model._meta.app_label
+                        app_label = self.index_model._meta.app_label
 
                     __target_models.append("%s.%s" % (app_label, model_name, ))
 
                 if len(__target_models) > 0 :
                     __models = __target_models
             else :
-                __models = [utils.Model.get_name(self.model),] # use only this models.
+                __models = [utils.Model.get_name(self.index_model),] # use only this models.
 
             self.target_models_cached = __models
 
@@ -66,7 +66,7 @@ class Manager (models.Manager) :
         import core
         core.initialize()
 
-        return queryset.QuerySet(self.model, target_models=self.get_target_models())
+        return queryset.QuerySet(self.index_model, target_models=self.get_target_models())
 
     def raw_query (self, *args, **kwargs) :
         return self.get_query_set().raw_query(*args, **kwargs)

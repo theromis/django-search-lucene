@@ -92,6 +92,7 @@ FIELD_NAME_PK      = "__pk__"       # pk value of object
 FIELD_NAME_MODEL   = "__model__"    # model name of object
 FIELD_NAME_UNICODE = "__unicode__"  # string returns of object
 
+LOOKUP_SEP = re.compile("^(.+)__(.+)$")
 
 RE_INDEX_MODEL_FIELD_NAME = re.compile("Field$")
 

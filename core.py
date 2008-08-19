@@ -169,11 +169,11 @@ class ModelsRegisteredDict (dict) :
         for name, index_model in self.candidate.items() :
             __index_model = index_model()
             setattr(
-                __index_model._meta.model,
+                index_model,
                 constant.METHOD_NAME_SEARCH, manager.Manager(),
             )
-            __index_model._meta.model.__searcher__.contribute_to_class(
-                __index_model._meta.model,
+            getattr(index_model, constant.METHOD_NAME_SEARCH).contribute_to_class(
+                __index_model,
                 constant.METHOD_NAME_SEARCH,
             )
 

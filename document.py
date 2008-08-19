@@ -20,8 +20,9 @@
 import re, sys, new, datetime, decimal, urlparse, types, traceback
 
 from django.conf import settings
+
 from django.core.exceptions import ImproperlyConfigured
-from django.db.models import fields as fields_django
+from django.db.models import fields as fields_django, ObjectDoesNotExist
 from django.db.models.base import ModelBase
 from django.db.models.fields import Field
 from django.db.models.fields.related import ForeignKey
@@ -344,9 +345,7 @@ class Fields (object) :
         has_terms = True
 
         def to_index (self, v, obj=None) :
-            return [
-                (i, False, False, ) for i in v
-            ] + [(unicode(getattr(obj, self.name)), True, False, ), ]
+            return [ (i, False, False, ) for i in v ]
 
     class Keyword (FieldBase) :
         tokenize = False
@@ -397,51 +396,56 @@ class Fields (object) :
     class File (MultiKeyword) :
         has_terms = True
         def __init__ (self, *args, **kwargs) :
-            kwargs.update(
-                {
-                    "func_get_value_from_object": DefaultFieldFuncGetValueFromObject.File,
-                }
-            )
+            if not kwargs.has_key("func_get_value_from_object") :
+                kwargs.update(
+                    {
+                        "func_get_value_from_object": DefaultFieldFuncGetValueFromObject.File,
+                    }
+                )
             super(Fields.File, self).__init__(*args, **kwargs)
 
     class FilePath (MultiKeyword) :
         has_terms = True
         def __init__ (self, *args, **kwargs) :
-            kwargs.update(
-                {
-                    "func_get_value_from_object": DefaultFieldFuncGetValueFromObject.FilePath,
-                }
-            )
+            if not kwargs.has_key("func_get_value_from_object") :
+                kwargs.update(
+                    {
+                        "func_get_value_from_object": DefaultFieldFuncGetValueFromObject.FilePath,
+                    }
+                )
             super(Fields.FilePath, self).__init__(*args, **kwargs)
 
     class Image (MultiKeyword) :
         has_terms = True
         def __init__ (self, *args, **kwargs) :
-            kwargs.update(
-                {
-                    "func_get_value_from_object": DefaultFieldFuncGetValueFromObject.Image,
-                }
-            )
+            if not kwargs.has_key("func_get_value_from_object") :
+                kwargs.update(
+                    {
+                        "func_get_value_from_object": DefaultFieldFuncGetValueFromObject.Image,
+                    }
+                )
             super(Fields.Image, self).__init__(*args, **kwargs)
 
     class URL (MultiKeyword) :
         has_terms = True
         def __init__ (self, *args, **kwargs) :
-            kwargs.update(
-                {
-                    "func_get_value_from_object": DefaultFieldFuncGetValueFromObject.URL,
-                }
-            )
+            if not kwargs.has_key("func_get_value_from_object") :
+                kwargs.update(
+                    {
+                        "func_get_value_from_object": DefaultFieldFuncGetValueFromObject.URL,
+                    }
+                )
             super(Fields.URL, self).__init__(*args, **kwargs)
 
     class Email (MultiKeyword) :
         has_terms = True
         def __init__ (self, *args, **kwargs) :
-            kwargs.update(
-                {
-                    "func_get_value_from_object": DefaultFieldFuncGetValueFromObject.Email,
-                }
-            )
+            if not kwargs.has_key("func_get_value_from_object") :
+                kwargs.update(
+                    {
+                        "func_get_value_from_object": DefaultFieldFuncGetValueFromObject.Email,
+                    }
+                )
             super(Fields.Email, self).__init__(*args, **kwargs)
 
     class Auto                 (Integer)    : pass
@@ -730,6 +734,9 @@ class Document (object) :
             return self.__unicode_index_model__()
         else :
             return self.get_field(constant.FIELD_NAME_UNICODE).to_model()
+
+    __repr__ = __unicode__
+    __str__ = __unicode__
 
     def __get_attrname (self, name) :
         if name == "pk" :
