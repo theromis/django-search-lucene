@@ -177,7 +177,7 @@ class MethodCreateIndex (object) :
         """
         _obj.to_create_index = created and None or ""
 
-        return _obj
+        return (_obj, created, )
 
     def _query_create (self, cls, **kwargs) :
         _obj = queryset_django.create(cls, **kwargs)

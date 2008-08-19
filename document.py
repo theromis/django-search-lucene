@@ -23,6 +23,8 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models import fields as fields_django
 from django.db.models.base import ModelBase
+from django.db.models.fields import Field
+from django.db.models.fields.related import ForeignKey
 from django.db.models.options import get_verbose_name
 from django.utils.html import escape
 
@@ -93,8 +95,10 @@ class DefaultFieldFuncGetValueFromObject (object) :
 
 class __INDEXFIELDBASE__ (object) :
     def __init__ (self, *args, **kwargs) :
+        self.name = None
         for k, v in kwargs.items() :
             setattr(self, k, v)
+
 
 class IndexField (object) :
     class Auto                  (__INDEXFIELDBASE__) : pass
@@ -512,10 +516,16 @@ class Meta (object) :
         self.fields = dict()
         self.fields_ordering = list()
         for f in self.model._meta.fields :
+            if not isinstance(f, Field) or isinstance(f, ForeignKey) :
+                continue
+
             if f.name in self.exclude :
                 continue
 
             (field_index, args, kwargs, ) = self.translate_model_field_to_index_field(f)
+
+            if field_index is None :
+                continue
 
             if f.name in __local_fields.keys() :
                 kk = __local_fields.get(f.name)
@@ -546,7 +556,17 @@ class Meta (object) :
 
         # overwrite the fields from model and index_model
         for i in dir(index_model) :
-            pass # not implemented
+            f = getattr(index_model, i)
+            if not isinstance(f, __INDEXFIELDBASE__) :
+                continue
+
+            f.name = i
+            (field_index, args, kwargs, ) = self.translate_custom_field_to_index_field(f)
+            if field_index is None :
+                continue
+
+            fm = field_index(i, *args, **kwargs)
+            self.fields[i] = fm
 
         ##################################################
         # Add default fields
@@ -586,6 +606,24 @@ class Meta (object) :
         self.fields_ordering.append(self.fields[constant.FIELD_NAME_UNICODE].name)
 
         self.fields_ordering = tuple(self.fields_ordering) # make it immutable.
+
+    def translate_custom_field_to_index_field (self, field) :
+        _f = None
+        args = list()
+        kwargs = dict()
+
+        if hasattr(Fields, field.__class__.__name__) :
+            _f = getattr(Fields, field.__class__.__name__)
+        else :
+            return (None, None, None, )
+
+        kwargs.update(field.__dict__)
+        del kwargs["name"]
+
+        if hasattr(self.index_model, "get_%s" % field.name) :
+            kwargs["func_get_value_from_object"] = getattr(self.index_model, "get_%s" % field.name)
+            
+        return (_f, args, kwargs, )
 
     def translate_model_field_to_index_field (self, field) :
         _f = None
