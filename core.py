@@ -56,7 +56,8 @@ class IndexManager (object) :
         try :
             w = pylucene.IndexWriter(**kwargs)
             for obj in objs :
-                w.index(document.Document.create_document_from_object(obj), )
+                for doc in document.Document.create_document_from_object(obj) :
+                    w.index(doc, )
 
             w.close()
         except Exception, e :
@@ -68,10 +69,11 @@ class IndexManager (object) :
     def func_index_update (self, obj, **kwargs) :
         try :
             w = pylucene.IndexWriter(**kwargs)
-            w.index(
-                document.Document.create_document_from_object(obj),
-                uid=str(utils.Model.get_uid(obj, obj.pk)),
-            )
+            for doc in document.Document.create_document_from_object(obj) :
+                w.index(
+                    doc,
+                    uid=str(utils.Model.get_uid(obj, obj.pk)),
+                )
             w.close()
         except Exception, e :
             raise
@@ -129,9 +131,21 @@ class ModelsRegisteredDict (dict) :
     __lock = False
     candidate = dict()
 
+    index_models = dict()
+
     def __init__ (self) :
         self.candidate = dict()
         self.write_lock = threading.RLock()
+
+    def is_added (self, f) :
+        name = utils.Model.get_name(f.Meta.model)
+        if not self.has_key(name) :
+            return False
+
+        return self.get(name).count(f) > 0
+
+    def get_index_model (self, name) :
+        return self.index_models.get(name)
 
     def __setitem__ (self, k, v) :
         if self.is_lock() : return
@@ -145,7 +159,8 @@ class ModelsRegisteredDict (dict) :
         if not force and self.has_key(name) :
             return
 
-        self.candidate[name] = index_model
+        self.candidate.setdefault(name, list())
+        self.candidate[name].append(index_model)
 
     def add_from_model (self, model, force=False) :
         self.add(
@@ -166,30 +181,34 @@ class ModelsRegisteredDict (dict) :
         self.__lock = True
 
         # add default manager
-        for name, index_model in self.candidate.items() :
-            __index_model = index_model()
-            setattr(
-                index_model,
-                constant.METHOD_NAME_SEARCH, manager.Manager(),
-            )
-            getattr(index_model, constant.METHOD_NAME_SEARCH).contribute_to_class(
-                __index_model,
-                constant.METHOD_NAME_SEARCH,
-            )
-
-            # attach `create_index` method.
-            manager.MethodCreateIndex.analyze_model_manager(
-                __index_model._meta.model,
-            )
-
-            # attach signals
-            for sig in constant.SIGNALS :
-                signals.Signals.connect(
-                    sig,
-                    model=__index_model._meta.model,
+        for name, index_models in self.candidate.items() :
+            for index_model in index_models :
+                __index_model = index_model()
+                setattr(
+                    index_model,
+                    constant.METHOD_NAME_SEARCH, manager.Manager(),
+                )
+                getattr(index_model, constant.METHOD_NAME_SEARCH).contribute_to_class(
+                    __index_model,
+                    constant.METHOD_NAME_SEARCH,
                 )
 
-            super(ModelsRegisteredDict, self).__setitem__(name, __index_model)
+                # attach `create_index` method.
+                manager.MethodCreateIndex.analyze_model_manager(
+                    __index_model._meta.model,
+                )
+
+                # attach signals
+                for sig in constant.SIGNALS :
+                    signals.Signals.connect(
+                        sig,
+                        model=__index_model._meta.model,
+                    )
+
+                #super(ModelsRegisteredDict, self).__setitem__(name, __index_model)
+                self.setdefault(name, list())
+                self[name].append(__index_model)
+                self.index_models[index_model.__name__] = __index_model
 
         self.candidate.clear()
         self.write_lock.release()
@@ -211,7 +230,14 @@ def initialize () :
             mods.append(model.__module__)
 
         # get the default model index index_model model
-        mod = __import__(model.__module__, {}, {}, ["models", ], )
+        try :
+            mod = __import__(
+                "%s.indexes" % ".".join(model.__module__.split(".")[:-1]),
+                {}, {}, ["indexes", ], )
+        except :
+            #import traceback
+            #traceback.print_exc()
+            continue
 
         for i in dir(mod) :
             f = getattr(mod, i)
@@ -223,7 +249,7 @@ def initialize () :
             except :
                 continue
 
-            if sys.MODELS_REGISTERED.has_key(f.__name__) :
+            if sys.MODELS_REGISTERED.is_added(f) :
                 continue
 
             index_models.append(f)

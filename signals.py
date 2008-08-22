@@ -46,28 +46,30 @@ class Signals (object) :
         import core
         core.initialize()
 
-        index_model = sys.MODELS_REGISTERED.get(utils.Model.get_name(instance), None)
-        if created :
-            sys.INDEX_MANAGER.index(
-                instance,
-                analyzer=index_model._meta.analyzer,
-                field_analyzers=index_model._meta.field_analyzers,
-            )
-        else :
-            sys.INDEX_MANAGER.index_update(
-                instance,
-                analyzer=index_model._meta.analyzer, 
-                field_analyzers=index_model._meta.field_analyzers,
-            )
+        index_models = sys.MODELS_REGISTERED.get(utils.Model.get_name(instance), None)
+        for index_model in index_models :
+            if created :
+                sys.INDEX_MANAGER.index(
+                    instance,
+                    analyzer=index_model._meta.analyzer,
+                    field_analyzers=index_model._meta.field_analyzers,
+                )
+            else :
+                sys.INDEX_MANAGER.index_update(
+                    instance,
+                    analyzer=index_model._meta.analyzer, 
+                    field_analyzers=index_model._meta.field_analyzers,
+                )
 
     def pre_delete (self, instance=None, sender=None, **kwargs) :
         pass
 
     def post_delete (self, instance=None, sender=None, **kwargs) :
-        index_model = sys.MODELS_REGISTERED.get(utils.Model.get_name(instance), None)
+        index_models = sys.MODELS_REGISTERED.get(utils.Model.get_name(instance), None)
 
-        if index_model._meta.casecade_delete :
-            sys.INDEX_MANAGER.unindex(instance)
+        for index_model in index_models :
+            if index_model._meta.casecade_delete :
+                sys.INDEX_MANAGER.unindex(instance)
 
     def request_started (self, *args, **kwargs) :
         pylucene.initialize_vm()

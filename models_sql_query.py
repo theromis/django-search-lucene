@@ -32,13 +32,11 @@ lucene = constant.import_lucene()
 class Query (sql.Query) :
     raw_queries = list()
     _query_cache = None
-    target_models = tuple()
 
-    def __init__ (self, index_model, connection, where=WhereNode, target_models=tuple()) :
+    def __init__ (self, index_model, connection, where=WhereNode, ) :
         super(Query, self).__init__(index_model, connection, where=WhereNode)
         self.index_model = index_model
         self.where.set_model(self.index_model)
-        self.target_models = target_models
         self.raw_queries = list()
 
     def clone(self, klass=None, **kwargs):
@@ -47,7 +45,6 @@ class Query (sql.Query) :
         clone.where.set_model(self.index_model)
         clone.index_model = self.index_model
         clone.raw_queries = self.raw_queries
-        clone.target_models = self.target_models
         return clone
 
     def __str__ (self) :
@@ -105,13 +102,12 @@ class Query (sql.Query) :
                     )
 
             subquery = pylucene.BooleanQuery()
-            for i in self.target_models :
-                subquery.add(
-                    pylucene.TermQuery(
-                        pylucene.Term.new(constant.FIELD_NAME_MODEL, i)
-                    ),
-                    constant.QUERY_BOOLEANS.get("OR"),
-                )
+            subquery.add(
+                pylucene.TermQuery(
+                    pylucene.Term.new(constant.FIELD_NAME_INDEX_MODEL, self.index_model.__class__.__name__)
+                ),
+                constant.QUERY_BOOLEANS.get("OR"),
+            )
             _query.add(subquery, constant.QUERY_BOOLEANS.get("AND"), )
 
             self._query_cache = (_query, _ordering, )

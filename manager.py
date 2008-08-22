@@ -25,48 +25,19 @@ from django.db.models.manager import Manager as manager_django
 import constant, queryset, signals, utils
 
 class Manager (models.Manager) :
-    __target_models = tuple()
-    target_models_cached = None
-
-    def __init__ (self, *target_models, **kwargs) :
+    def __init__ (self, **kwargs) :
         super(Manager, self).__init__()
 
-        self.__target_models = target_models
-        self.target_models_cached = None
         self.manager_id = constant.METHOD_NAME_SEARCH
 
     def contribute_to_class(self, index_model, name):
         self.index_model = index_model
 
-    def get_target_models (self) :
-        if self.target_models_cached is None :
-            # parse target_models
-            if None in set(self.__target_models) :
-                __models = sys.MODELS_REGISTERED.keys()
-            elif type(self.__target_models) in (list, tuple, ) and len(self.__target_models) > 0 :
-                __target_models = list()
-                for model_name in self.__target_models :
-                    if model_name.count(".") > 0 :
-                        (app_label, model_name, ) = model_name.split(".", 1)
-                    else :
-                        app_label = self.index_model._meta.app_label
-
-                    __target_models.append("%s.%s" % (app_label, model_name, ))
-
-                if len(__target_models) > 0 :
-                    __models = __target_models
-            else :
-                __models = [utils.Model.get_name(self.index_model),] # use only this models.
-
-            self.target_models_cached = __models
-
-        return self.target_models_cached
-
     def get_query_set(self):
         import core
         core.initialize()
 
-        return queryset.QuerySet(self.index_model, target_models=self.get_target_models())
+        return queryset.QuerySet(self.index_model)
 
     def raw_query (self, *args, **kwargs) :
         return self.get_query_set().raw_query(*args, **kwargs)

@@ -80,17 +80,18 @@ ANALYZERS = {
     "Whitespace"     : lucene.WhitespaceAnalyzer,
 }
 
-METHOD_NAME_SEARCH = "__searcher__"
+METHOD_NAME_SEARCH = "objects"
 
 SIGNALS = (
     "post_save",
     "post_delete",
 )
 
-FIELD_NAME_UID     = "__uid__"      # unique id of document
-FIELD_NAME_PK      = "__pk__"       # pk value of object
-FIELD_NAME_MODEL   = "__model__"    # model name of object
-FIELD_NAME_UNICODE = "__unicode__"  # string returns of object
+FIELD_NAME_UID          = "__uid__"      # unique id of document
+FIELD_NAME_PK           = "__pk__"       # pk value of object
+FIELD_NAME_MODEL        = "__model__"    # model name of object
+FIELD_NAME_INDEX_MODEL  = "__index_model__"    # index model name
+FIELD_NAME_UNICODE      = "__unicode__"  # string returns of object
 
 LOOKUP_SEP = re.compile("^(.+)__(.+)$")
 

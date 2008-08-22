@@ -32,13 +32,11 @@ class QuerySet (QuerySet_django) :
     _order = None
     _in_bulk = False
     flat = False
-    target_models = tuple()
 
-    def __init__ (self, model=None, query=None, target_models=tuple()) :
+    def __init__ (self, model=None, query=None, ) :
         super(QuerySet, self).__init__(model=model, query=query)
 
-        self.target_models = target_models
-        self.query = query or Query(self.model, connection, target_models=self.target_models)
+        self.query = query or Query(self.model, connection, )
 
     def __repr__(self) :
         return repr(list(self))

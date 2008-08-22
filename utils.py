@@ -47,7 +47,7 @@ class Model (object) :
     def get_uid (self, model, pk) :
         return "%s/%s" % (self.get_name(model), pk, )
 
-    def get_index_model (self, model) :
+    def get_index_models (self, model) :
         if isinstance(model, ModelBase) :
             model = Model.get_name(model)
         elif isinstance(model.__class__, ModelBase) :
@@ -58,7 +58,7 @@ class Model (object) :
     get_name    = classmethod(get_name)
     get_name_by_model_name = classmethod(get_name_by_model_name)
     get_uid     = classmethod(get_uid)
-    get_index_model    = classmethod(get_index_model)
+    get_index_models    = classmethod(get_index_models)
 
 def add_unicode_function (obj) :
     if hasattr(obj, "toString") :

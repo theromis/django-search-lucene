@@ -72,10 +72,10 @@ class DefaultFieldFuncGetValueFromObject (object) :
 
         r = (
             "%s://%s" % (scheme, netloc, ),
-            "%s://%s/%s" % (scheme, netloc, path, ),
-            "%s://%s/%s%s" % (scheme, netloc, path, params and ";%s" % params or "", ),
-            "%s://%s/%s%s%s" % (scheme, netloc, path, params and ";%s" % params or "", query and "?%s" % query or "", ),
-            "%s://%s/%s%s%s%s" % (scheme, netloc, path, params and ";%s" % params or "", query and "?%s" % query or "",  fragment and "#%s" % fragment or ""),
+            "%s://%s%s" % (scheme, netloc, path, ),
+            "%s://%s%s%s" % (scheme, netloc, path, params and ";%s" % params or "", ),
+            "%s://%s%s%s%s" % (scheme, netloc, path, params and ";%s" % params or "", query and "?%s" % query or "", ),
+            "%s://%s%s%s%s%s" % (scheme, netloc, path, params and ";%s" % params or "", query and "?%s" % query or "",  fragment and "#%s" % fragment or ""),
             netloc,
             path,
             params,
@@ -209,7 +209,10 @@ class FieldBase (object) :
                 ...
             ]
         """
-        return ((unicode(v), self.store, self.tokenize, ), )
+        if type(v) in (list, tuple, ) :
+            return [self.to_index(i, obj)[0] for i in v]
+        else :
+            return ((unicode(v), self.store, self.tokenize, ), )
 
     def to_query (self, v) :
         return unicode(v)
@@ -288,6 +291,9 @@ class Fields (object) :
             self.tokenize = False
             self.abstract = True
 
+        def initialize (self) :
+            pass
+
         def __unicode__ (self) :
             return u"%s" % self.__class__.__name__
 
@@ -345,7 +351,7 @@ class Fields (object) :
         has_terms = True
 
         def to_index (self, v, obj=None) :
-            return [ (i, False, False, ) for i in v ]
+            return [ (i, True, False, ) for i in v ]
 
     class Keyword (FieldBase) :
         tokenize = False
@@ -393,7 +399,12 @@ class Fields (object) :
 
     ##################################################
     # Django native model fields
-    class File (MultiKeyword) :
+    class MultiKeywordHidden (object) :
+        def to_index (self, v, obj=None) :
+            v.sort()
+            return [ (i, False, False, ) for i in v ] + [(v[-1], True, False, ), ]
+
+    class File (MultiKeywordHidden, MultiKeyword, ) :
         has_terms = True
         def __init__ (self, *args, **kwargs) :
             if not kwargs.has_key("func_get_value_from_object") :
@@ -404,7 +415,7 @@ class Fields (object) :
                 )
             super(Fields.File, self).__init__(*args, **kwargs)
 
-    class FilePath (MultiKeyword) :
+    class FilePath (MultiKeywordHidden, MultiKeyword, ) :
         has_terms = True
         def __init__ (self, *args, **kwargs) :
             if not kwargs.has_key("func_get_value_from_object") :
@@ -415,7 +426,7 @@ class Fields (object) :
                 )
             super(Fields.FilePath, self).__init__(*args, **kwargs)
 
-    class Image (MultiKeyword) :
+    class Image (MultiKeywordHidden, MultiKeyword, ) :
         has_terms = True
         def __init__ (self, *args, **kwargs) :
             if not kwargs.has_key("func_get_value_from_object") :
@@ -426,7 +437,7 @@ class Fields (object) :
                 )
             super(Fields.Image, self).__init__(*args, **kwargs)
 
-    class URL (MultiKeyword) :
+    class URL (MultiKeywordHidden, MultiKeyword, ) :
         has_terms = True
         def __init__ (self, *args, **kwargs) :
             if not kwargs.has_key("func_get_value_from_object") :
@@ -437,7 +448,7 @@ class Fields (object) :
                 )
             super(Fields.URL, self).__init__(*args, **kwargs)
 
-    class Email (MultiKeyword) :
+    class Email (MultiKeywordHidden, MultiKeyword, ) :
         has_terms = True
         def __init__ (self, *args, **kwargs) :
             if not kwargs.has_key("func_get_value_from_object") :
@@ -591,6 +602,13 @@ class Meta (object) :
             abstract=True,
         )
 
+        # index model field
+        self.fields[constant.FIELD_NAME_INDEX_MODEL] = Fields.Keyword(
+            constant.FIELD_NAME_INDEX_MODEL,
+            func_get_value_from_object=lambda obj, name : self.index_model.__class__.__name__,
+            abstract=True,
+        )
+
         # model field
         self.fields[constant.FIELD_NAME_MODEL] = Fields.Keyword(
             constant.FIELD_NAME_MODEL,
@@ -635,7 +653,9 @@ class Meta (object) :
         kwargs = dict()
 
         name = constant.RE_INDEX_MODEL_FIELD_NAME.sub("", field.__class__.__name__)
-        if hasattr(Fields, name) :
+        if hasattr(self.index_model, "get_%s" % name) :
+            kwargs["func_get_value_from_object"] = getattr(self.index_model, "get_%s" % name)
+        elif hasattr(Fields, name) :
             _f = getattr(Fields, name)
         elif hasattr(DefaultFieldFuncGetValueFromObject, name) :
             _f = Fields.MultiKeyword
@@ -689,7 +709,8 @@ class Document (object) :
             self.explanation = obj[2]
 
         self.query = query
-        self.index_model = sys.MODELS_REGISTERED.get(self.doc.get(constant.FIELD_NAME_MODEL), None)
+        self.index_model = sys.MODELS_REGISTERED.get_index_model(self.doc.get(constant.FIELD_NAME_INDEX_MODEL))
+
         self._meta = self.index_model._meta
         self.meta = self._meta
 
@@ -804,16 +825,20 @@ class Document (object) :
         return utils.add_unicode_function(self.explanation)
 
     def create_document_from_object (self, obj) :
-        base = utils.Model.get_index_model(obj)
-        if base is None :
-            return None
+        bases = utils.Model.get_index_models(obj)
+        docs = list()
+        for base in bases :
+            if base is None :
+                return None
 
-        doc = lucene.Document()
-        for name, f in base._meta.fields.items() :
-            for fi in f.get_index_fields(obj) :
-                doc.add(fi)
+            doc = lucene.Document()
+            for name, f in base._meta.fields.items() :
+                for fi in f.get_index_fields(obj) :
+                    doc.add(fi)
 
-        return doc
+            docs.append(doc)
+
+        return docs
 
     def filter (self, name, **kwargs) :
         field = self._meta.fields.get(name, None)
