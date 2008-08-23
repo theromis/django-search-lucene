@@ -57,7 +57,6 @@ class IndexManager (object) :
             for obj in objs :
                 index_models = utils.Model.get_index_models(obj)
                 for index_model in index_models :
-
                     searcher = pylucene.Searcher(storage_path=index_model._meta.storage_path, )
                     uid = utils.Model.get_uid(index_model._meta.model, obj.pk, )
                     doc = searcher.get_document_by_uid(uid)
@@ -83,13 +82,15 @@ class IndexManager (object) :
 
     def func_index_update (self, obj, **kwargs) :
         try :
-            w = pylucene.IndexWriter(**kwargs)
-            for doc in document.Document.create_document_from_object(obj) :
+            index_models = utils.Model.get_index_models(obj)
+            for index_model in index_models :
+                kwargs.update({"storage_path": index_model._meta.storage_path, })
+                w = pylucene.IndexWriter(**kwargs)
                 w.index(
-                    doc,
-                    uid=str(utils.Model.get_uid(obj, obj.pk)),
+                    document.Document.create_document_from_object(index_model, obj),
+                    uid=str(utils.Model.get_uid(index_model._meta.model, obj.pk)),
                 )
-            w.close()
+                w.close()
         except Exception, e :
             raise
             return False
