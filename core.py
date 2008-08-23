@@ -54,12 +54,27 @@ class IndexManager (object) :
             objs = iter([objs, ])
 
         try :
-            w = pylucene.IndexWriter(**kwargs)
             for obj in objs :
-                for doc in document.Document.create_document_from_object(obj) :
-                    w.index(doc, )
+                index_models = utils.Model.get_index_models(obj)
+                for index_model in index_models :
 
-            w.close()
+                    searcher = pylucene.Searcher(storage_path=index_model._meta.storage_path, )
+                    uid = utils.Model.get_uid(index_model._meta.model, obj.pk, )
+                    doc = searcher.get_document_by_uid(uid)
+                    if not doc :
+                        uid = None
+
+                    searcher.close()
+
+                    kwargs.update({"storage_path": index_model._meta.storage_path, })
+                    w = pylucene.IndexWriter(**kwargs)
+                    w.index(
+                        document.Document.create_document_from_object(
+                            index_model, obj,
+                        ),
+                        uid=uid,
+                    )
+                    w.close()
         except Exception, e :
             raise
             return False
@@ -143,6 +158,9 @@ class ModelsRegisteredDict (dict) :
             return False
 
         return self.get(name).count(f) > 0
+
+    def get_index_models (self) :
+        return self.index_models.values()
 
     def get_index_model (self, name) :
         return self.index_models.get(name)

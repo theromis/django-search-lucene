@@ -21,6 +21,7 @@ from django.core.management import get_commands
 from django.core.management.base import NoArgsCommand
 
 pylucene = getattr(__import__("%s.pylucene" % get_commands()["search_initialize_db"], {}, {}, []), "pylucene")
+core = getattr(__import__("%s.core" % get_commands()["search_initialize_db"], {}, {}, []), "core")
 
 class Command (NoArgsCommand) :
     help = "Initialize the search index db."
@@ -28,35 +29,40 @@ class Command (NoArgsCommand) :
     requires_model_validation = False
 
     def handle_noargs(self, **options):
-        __storage_path = settings.SEARCH_STORAGE_PATH
+        for i in set([i._meta.storage_path for i in sys.MODELS_REGISTERED.get_index_models()] + [settings.SEARCH_STORAGE_PATH, ]) :
+            self.initialize_storage(i)
 
-        print "> Check the current search index db, %s" % __storage_path
-        if not os.path.exists(__storage_path) or not os.path.isdir(__storage_path) :
-            print "\t[EE] %(path)s does not exists. %(path)s must be directory." % {"path": __storage_path, }
+
+    def initialize_storage (self, storage_path) :
+        print "======================================================================"
+        print "Initializing storage path, %s" % storage_path
+        print "\t> Check the current search index db, %s" % storage_path
+        if not os.path.exists(storage_path) or not os.path.isdir(storage_path) :
+            print "\t\t[EE] %(path)s does not exists. %(path)s must be directory." % {"path": storage_path, }
             return
 
         try :
-            fd = file(os.path.join(__storage_path, ".tmp"), "w")
+            fd = file(os.path.join(storage_path, ".tmp"), "w")
         except IOError :
-            print "\t[EE] search index directory, %s must be writable." % __storage_path
+            print "\t\t[EE] search index directory, %s must be writable." % storage_path
             return
         else :
             fd.close()
-            os.remove(os.path.join(__storage_path, ".tmp"))
+            os.remove(os.path.join(storage_path, ".tmp"))
 
-        print "< Found search index db."
+        print "\t< Found search index db."
 
         print
-        print "< Starting initializing search index db."
+        print "\t< Starting initializing search index db."
         try :
-            lc = pylucene.IndexWriter()
+            lc = pylucene.IndexWriter(storage_path=storage_path, )
             lc.open(create=True)
             lc.close()
         except :
-            print "\t[EE] failed to initialize search index db."
+            print "\t\t[EE] failed to initialize search index db."
 
         print
-        print "< Initialized."
+        print "\t< Initialized."
 
 
 """

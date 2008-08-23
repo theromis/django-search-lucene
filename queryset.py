@@ -35,6 +35,7 @@ class QuerySet (QuerySet_django) :
 
     def __init__ (self, model=None, query=None, ) :
         super(QuerySet, self).__init__(model=model, query=query)
+        self.index_model = model
 
         self.query = query or Query(self.model, connection, )
 
@@ -116,7 +117,7 @@ class QuerySet (QuerySet_django) :
 
     def get (self, *args, **kwargs) :
         if kwargs.has_key("pk") :
-            searcher = pylucene.Searcher()
+            searcher = pylucene.Searcher(storage_path=self.index_model._meta.storage_path, )
             doc = searcher.get_document_by_uid(
                 utils.Model.get_uid(self.model, kwargs.get("pk"))
             )

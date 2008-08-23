@@ -480,6 +480,7 @@ class Meta (object) :
     verbose_name        = None
     verbose_name_plural = None
     analyzer            = lucene.WhitespaceAnalyzer()
+    storage_path        = settings.SEARCH_STORAGE_PATH
     ##################################################
 
     field_analyzers     = dict()
@@ -824,21 +825,13 @@ class Document (object) :
     def get_explanation (self) :
         return utils.add_unicode_function(self.explanation)
 
-    def create_document_from_object (self, obj) :
-        bases = utils.Model.get_index_models(obj)
-        docs = list()
-        for base in bases :
-            if base is None :
-                return None
+    def create_document_from_object (self, index_model, obj) :
+        doc = lucene.Document()
+        for name, f in index_model._meta.fields.items() :
+            for fi in f.get_index_fields(obj) :
+                doc.add(fi)
 
-            doc = lucene.Document()
-            for name, f in base._meta.fields.items() :
-                for fi in f.get_index_fields(obj) :
-                    doc.add(fi)
-
-            docs.append(doc)
-
-        return docs
+        return doc
 
     def filter (self, name, **kwargs) :
         field = self._meta.fields.get(name, None)

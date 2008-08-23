@@ -122,7 +122,7 @@ class Query (sql.Query) :
             raise
 
         try :
-            self.searcher = pylucene.Searcher()
+            self.searcher = pylucene.Searcher(storage_path=self.index_model._meta.storage_path, )
         except Exception, e :
             raise
 
@@ -162,7 +162,7 @@ class Query (sql.Query) :
         (query, ordering, ) = self.as_sql()
 
         try :
-            self.searcher = pylucene.Searcher()
+            self.searcher = pylucene.Searcher(storage_path=self.index_model._meta.storage_path, )
         except Exception, e :
             raise
         else :
