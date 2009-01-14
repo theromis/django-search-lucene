@@ -17,14 +17,11 @@
 
 import re, sys, unittest, datetime, random
 
-import core, pylucene, document
-import models as models_tests
-
 class ModelFilterTestCase (unittest.TestCase) :
 
     def setUp (self) :
-        self.from_model = models_tests.document.objects
-        self.from_indexed = models_tests.document.objects_search
+        self.from_model = models_tests.doc.objects
+        self.from_indexed = sys.MODELS_REGISTERED.get("tests.doc")[0].objects
 
     def compare_2_list (self, o, o_n) :
         self.assertEquals(o.count(), o_n.count())
@@ -44,6 +41,7 @@ class ModelFilterTestCase (unittest.TestCase) :
         o = self.from_model.all()[0]
 
         doc = self.from_indexed.get(pk=o.pk)
+
         self.assertEqual(o.pk, doc.pk)
         self.assertEqual(o.content, doc.content)
         self.assertEqual(o.summary, doc.summary)
@@ -240,46 +238,38 @@ class ModelFilterTestCase (unittest.TestCase) :
             [(i.pk, i.title, ) for i in o_n0] != [(i.pk, i.title, ) for i in o_n1]
         )
 
-    def test_highlight (self) :
-        o = list(self.from_model.filter())[0]
-        __titles = o.title.split()
+    #def test_highlight (self) :
+    #    o = list(self.from_model.filter())[0]
+    #    __titles = o.title.split()
 
-        o_n = self.from_indexed.get(title__contains=__titles[0])
+    #    o_n = self.from_indexed.get(title__contains=__titles[0])
 
-        r = re.compile("""<span class="highlight">(.*)</span>""")
+    #    r = re.compile("""<span class="highlight">(.*)</span>""")
 
-        h = o_n.get_field("title").highlight()
-        m = set(r.findall(h)) - set([__titles[0], ])
-        self.assertTrue(len(m) < 1)
+    #    h = o_n.get_field("title").highlight()
+    #    m = set(r.findall(h)) - set([__titles[0], ])
+    #    self.assertTrue(len(m) < 1)
 
-        query = pylucene.TermQuery(pylucene.Term.new("title", __titles[1]))
-        h = o_n.get_field("title").highlight(query=query)
-        m = set(r.findall(h)) - set([__titles[1], ])
-        self.assertTrue(len(m) < 1)
+    #    query = pylucene.TermQuery(pylucene.Term.new("title", __titles[1]))
+    #    h = o_n.get_field("title").highlight(query=query)
+    #    m = set(r.findall(h)) - set([__titles[1], ])
+    #    self.assertTrue(len(m) < 1)
 
 
 if __name__ == "__main__" :
-    from django.db import models
+
     from django.conf import settings
-
-    models.get_models()
-    #core.register(models_tests.document)
-    #core.register(models_tests.document0)
-    #core.register(models_tests.document_without_index)
-    sys.MODELS_REGISTERED.unlock()
-    sys.MODELS_REGISTERED.add_from_model(models_tests.document)
-    sys.MODELS_REGISTERED.add_from_model(models_tests.document0)
-    sys.MODELS_REGISTERED.add_from_model(models_tests.document_without_index)
-
-    sys.MODELS_REGISTERED.lock()
-
-    settings.SEARCH_STORAGE_PATH = settings.SEARCH_STORAGE_PATH  + "_test"
+    settings.SEARCH_STORAGE_PATH = settings.SEARCH_STORAGE_PATH  + "_tests"
     settings.SEARCH_STORAGE_TYPE = "fs"
     settings.DEBUG = False
 
+    import core, pylucene, document
+    import models as models_tests
+    models_tests.add()
+
     models_tests.cleanup_index()
-    models_tests.cleanup_documents()
-    models_tests.insert_documents(1)
+    models_tests.cleanup_docs()
+    models_tests.insert_docs(1)
 
     unittest.main(testRunner=models_tests.SearcherTestRunner(verbosity=2))
     sys.exit()

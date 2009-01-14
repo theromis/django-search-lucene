@@ -76,12 +76,12 @@ def render_to_response (request, *args, **kwargs) :
     return render_to_response_django(*args, **kwargs)
 
 @check_auth
-def execute (request, command=None, model_name=None, ) :
+def execute (request, command=None, app_label=None, index_name=None, ) :
     """
     Run the internal lucene jobs. See more details, see the methods of pylucene.IndexManager.
     """
     if command == "search" :
-        return search(request, model_name=model_name, )
+        return search(request, app_label=app_label, index_name=index_name, )
 
     if not model_name :
         sys.INDEX_MANAGER.execute(command)
@@ -109,7 +109,8 @@ def index (request, *args, **kwargs) :
 
     index_model_list = list()
     for k, v in sys.MODELS_REGISTERED.items() :
-        index_model_list.append(v)
+        for i in v :
+            index_model_list.append(i)
 
     return render_to_response(
         request,
@@ -123,12 +124,12 @@ def index (request, *args, **kwargs) :
     )
 
 @check_auth
-def model_view (request, model_name) :
+def model_view (request, app_label, index_name) :
     """
     Object list of model.
     """
 
-    index_model = utils.Model.get_index_model(model_name)
+    index_model = utils.get_index_model(app_label, index_name)
     if not index_model :
         raise Http404
 
@@ -141,7 +142,7 @@ def model_view (request, model_name) :
 
     return object_list(
         request,
-        queryset=index_model.get_searcher().all(),
+        queryset=index_model.objects.all(),
         paginate_by=20,
         page=page,
         allow_empty=True,
@@ -154,18 +155,20 @@ def model_view (request, model_name) :
     )
 
 @check_auth
-def model_object_view (request, model_name, object_id) :
+def model_object_view (request, app_label, index_name, object_id) :
     """
     Model object details
     """
 
-    index_model = utils.Model.get_index_model(model_name)
+    index_model = utils.get_index_model(app_label, index_name, )
     if not index_model :
         raise Http404
 
+    _o = index_model.objects.all().get(pk=object_id, )
+
     return object_detail(
         request,
-        queryset=index_model.get_searcher().all(),
+        queryset=index_model.objects.all(),
         object_id=object_id,
         template_name="search_admin_model_object.html",
         extra_context={
@@ -197,7 +200,7 @@ class ObjectList (list) :
         return len(self)
 
 @check_auth
-def search (request, model_name=None, ) :
+def search (request, app_label=None, index_name=None) :
     """
     Search the index by raw lucene query.
     """
@@ -216,10 +219,10 @@ def search (request, model_name=None, ) :
     error = None
     queryset = ObjectList()
     if form.is_valid() :
-        index_model = utils.Model.get_index_model(model_name)
-        if index_model :
+        if app_label and index_name :
+            index_model = utils.get_index_model(app_label, index_name)
             try :
-                queryset = index_model.get_searcher().raw_query(raw_query)
+                queryset = index_model.objects.raw_query(raw_query)
             except Exception, e :
                 error = "parsing_error"
         else :
@@ -239,6 +242,7 @@ def search (request, model_name=None, ) :
         page=page,
         allow_empty=True,
         extra_context={
+            "in_search": True,
             "form": form,
             "queryset": queryset,
             "opts": models_search.Search._meta,

@@ -25,9 +25,12 @@ urlpatterns = patterns("",
     url(r"^search/$", views.index, kwargs={"redirect": "../", }, ),
     url(r"^__(?P<command>[\w\d\.][\w\d\.]*)__/", views.execute, ),
 
-    url(r"^(?P<model_name>[\w\d\.][\w\d\.]*)/__(?P<command>[\w\d\.][\w\d\.]*)__/", views.execute, ),
-    url(r"^(?P<model_name>[\w\d\.][\w\d\.]*)/(?P<object_id>.*)/", views.model_object_view, ),
-    url(r"^(?P<model_name>[\w\d\.][\w\d\.]*)/", views.model_view, ),
+    url(r"^(?P<app_label>[\w\d\.][\w\d\.]*)/(?P<index_name>[\w\d][\w\d]*)/(?P<object_id>\d+)/", views.model_object_view, ),
+    url(r"^(?P<app_label>[\w\d\.][\w\d\.]*)/(?P<index_name>[\w\d][\w\d]*)/__(?P<command>[\w\d\.][\w\d\.]*)__/", views.execute, ),
+    url(r"^(?P<app_label>[\w\d\.][\w\d\.]*)/(?P<index_name>[\w\d][\w\d]*)/", views.model_view, ),
+
+    url(r"^(?P<app_label>[\w\d\.][\w\d\.]*)/__(?P<command>[\w\d\.][\w\d\.]*)__/", views.execute, ),
+    url(r"^(?P<app_label>[\w\d\.][\w\d\.]*)/(?P<object_id>.*)/", views.model_object_view, ),
     url(r"^", views.index, ),
 )
 

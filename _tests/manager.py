@@ -1,1 +1,1 @@
-../manager.py
+/media/workspace/workspace/django-search-with-lucene/project/dsl/search/manager.py

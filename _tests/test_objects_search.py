@@ -17,42 +17,44 @@
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 """
 
-import sys, unittest
-class ModelIndexModelOrdering (unittest.TestCase):
+import re, sys, unittest, datetime, random
+
+class ModelObjectsSearch (unittest.TestCase) :
+
     def setUp (self) :
         self.from_model = models_tests.doc.objects
-        self.from_indexed = sys.MODELS_REGISTERED.get("tests.doc")[0].objects
 
-    def test_ordering (self) :
-        o = self.from_model.all().order_by("-time_added", "title", )
-        o_n = self.from_indexed.all().order_by("-time_added", "title", )
+    def test_exist_objects_search (self, ) :
+        self.assertTrue(hasattr(models_tests.doc, "objects_search"))
 
+    def compare_2_list (self, o, o_n) :
+        self.assertEquals(o.count(), o_n.count())
         self.assertEqual(
-            [(i.pk, i.title, ) for i in o],
-            [(i.pk, i.title, ) for i in o_n],
+            set([i.pk for i in o]),
+            set([i.pk for i in o_n]),
         )
 
-    def test_ordering_random (self) :
-        o = self.from_model.all().order_by("?", )
-        o_n = self.from_indexed.all().order_by("?", )
-
-        self.assertTrue(
-            [(i.pk, i.title, ) for i in o] != [(i.pk, i.title, ) for i in o_n]
+    def test_query (self, ) :
+        self.compare_2_list(
+            models_tests.doc.objects.all(),
+            models_tests.doc.objects_search.all(),
         )
 
 if __name__ == "__main__" :
+
     from django.conf import settings
-    settings.SEARCH_STORAGE_PATH = settings.SEARCH_STORAGE_PATH  + "_test"
+    settings.SEARCH_STORAGE_PATH = settings.SEARCH_STORAGE_PATH  + "_tests"
     settings.SEARCH_STORAGE_TYPE = "fs"
     settings.DEBUG = False
 
-    import core, document, utils
+    import core, pylucene, document
     import models as models_tests
-    models_tests.add()
+
+    core.register_index_model(models_tests)
 
     models_tests.cleanup_index()
     models_tests.cleanup_docs()
-    models_tests.insert_docs(3)
+    models_tests.insert_docs(1)
 
     unittest.main(testRunner=models_tests.SearcherTestRunner(verbosity=2))
     sys.exit()

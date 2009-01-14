@@ -35,6 +35,7 @@ u"형식논리학", u"관계", u"가설연역법", u"동의어반복", u"기호�
 ]
 
 from manager import Manager
+from document import IndexModel, IndexField
 
 import pylucene
 
@@ -44,7 +45,7 @@ class SearcherTestRunner (unittest.TextTestRunner) :
 
         return o
 
-class document (models.Model) :
+class doc (models.Model) :
     class Meta :
         app_label = "tests"
         ordering = ("-id", )
@@ -56,14 +57,16 @@ class document (models.Model) :
     path = models.FilePathField(blank=False, null=False, )
     email = models.EmailField(blank=True, null=True, )
 
+    objects_search = Manager(index_model="doc_index")
+
     def __unicode__ (self) :
         return "%s" % self.title
 
-    objects = models.Manager() # The default manager.
-    objects_search = Manager()
-    objects_search_global = Manager(None, )
+class doc_index (IndexModel) :
+    class Meta :
+        model = doc
 
-class document0 (models.Model) :
+class doc0 (models.Model) :
     class Meta :
         app_label = "tests"
         ordering = ("id", )
@@ -78,11 +81,7 @@ class document0 (models.Model) :
     def __unicode__ (self) :
         return "%s" % self.title
 
-    objects = models.Manager() # The default manager.
-    objects_search = Manager()
-    objects_search_global = Manager(None, )
-
-class document_without_index (models.Model) :
+class doc_without_index (models.Model) :
     class Meta :
         app_label = "tests"
         ordering = ("id", )
@@ -97,12 +96,8 @@ class document_without_index (models.Model) :
     def __unicode__ (self) :
         return "%s" % self.title
 
-    objects = models.Manager() # The default manager.
-    objects_search = Manager()
-    objects_search_global = Manager("document0", )
-
-    def save (self) :
-        super(document_without_index, self).save_base(cls=self)
+    def save (self, **kwargs) :
+        return super(doc_without_index, self).save_base(cls=self, **kwargs)
 
 def cleanup_index () :
     try :
@@ -114,9 +109,9 @@ def cleanup_index () :
 
     pylucene.Indexer().clean().close()
 
-def cleanup_documents (model=None) :
+def cleanup_docs (model=None) :
     if model is None :
-        model = document
+        model = doc
 
     try :
         model.objects.all().delete()
@@ -133,9 +128,9 @@ def cleanup_documents (model=None) :
 
     cursor.close()
 
-def insert_documents (n, model=None) :
+def insert_docs (n, model=None) :
     if model is None :
-        model = document
+        model = doc
 
     #print ">> Cleaning up models."
     # attach models
@@ -155,7 +150,7 @@ def insert_documents (n, model=None) :
 
     #core.register(model, )
 
-    #print ">> Inserting documents"
+    #print ">> Inserting docs"
     d = list()
     for i in range(n) :
         d.append(
@@ -173,11 +168,12 @@ def insert_documents (n, model=None) :
     return d
 
 
-sys.MODELS_REGISTERED.unlock()
-sys.MODELS_REGISTERED.add_from_model(document)
-sys.MODELS_REGISTERED.add_from_model(document0)
-sys.MODELS_REGISTERED.add_from_model(document_without_index)
-sys.MODELS_REGISTERED.lock()
+def add () :
+    sys.MODELS_REGISTERED.unlock()
+    sys.MODELS_REGISTERED.add_from_model(doc)
+    sys.MODELS_REGISTERED.add_from_model(doc0)
+    sys.MODELS_REGISTERED.add_from_model(doc_without_index)
+    sys.MODELS_REGISTERED.lock()
 
 
 """

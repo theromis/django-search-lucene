@@ -119,7 +119,7 @@ class QuerySet (QuerySet_django) :
         if kwargs.has_key("pk") :
             searcher = pylucene.Searcher(storage_path=self.index_model._meta.storage_path, )
             doc = searcher.get_document_by_uid(
-                utils.Model.get_uid(self.model, kwargs.get("pk"))
+                utils.get_uid(self.model, kwargs.get("pk"))
             )
             if doc is None :
                 raise ObjectDoesNotExist, ""

@@ -17,18 +17,11 @@
 
 import unittest, sys, datetime, random
 
-from django.conf import settings
-from django.db import models
-from django.db.models import Q
-
-import core
-import models as models_tests
-
 class ModelFilterQTestCase (unittest.TestCase):
     def setUp (self) :
         settings.SEARCH_STORAGE_TYPE = "fs"
-        self.from_model = models_tests.document.objects
-        self.from_indexed = models_tests.document.objects_search
+        self.from_model = models_tests.doc.objects
+        self.from_indexed = sys.MODELS_REGISTERED.get("tests.doc")[0].objects
 
     def test_filter_Q_or (self) :
         """Using Q object, 'OR'"""
@@ -57,15 +50,21 @@ class ModelFilterQTestCase (unittest.TestCase):
 
 if __name__ == "__main__" :
 
-    models.get_models()
-
+    from django.conf import settings
     settings.SEARCH_STORAGE_PATH = settings.SEARCH_STORAGE_PATH  + "_test"
     settings.SEARCH_STORAGE_TYPE = "fs"
-    #settings.DEBUG = 2
+    settings.DEBUG = False
+
+    from django.db.models import Q
+
+    import core
+    import models as models_tests
+
+    models_tests.add()
 
     models_tests.cleanup_index()
-    models_tests.cleanup_documents()
-    models_tests.insert_documents(3)
+    models_tests.cleanup_docs()
+    models_tests.insert_docs(3)
 
     unittest.main(testRunner=models_tests.SearcherTestRunner(verbosity=2))
     sys.exit()

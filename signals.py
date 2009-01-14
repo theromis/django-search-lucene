@@ -46,7 +46,7 @@ class Signals (object) :
         import core
         core.initialize()
 
-        index_models = sys.MODELS_REGISTERED.get(utils.Model.get_name(instance), None)
+        index_models = sys.MODELS_REGISTERED.get(utils.get_model_name(instance), None)
         for index_model in index_models :
             if created :
                 sys.INDEX_MANAGER.index(
@@ -65,7 +65,7 @@ class Signals (object) :
         pass
 
     def post_delete (self, instance=None, sender=None, **kwargs) :
-        index_models = sys.MODELS_REGISTERED.get(utils.Model.get_name(instance), None)
+        index_models = sys.MODELS_REGISTERED.get(utils.get_model_name(instance), None)
 
         for index_model in index_models :
             if index_model._meta.casecade_delete :

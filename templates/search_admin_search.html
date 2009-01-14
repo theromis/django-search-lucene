@@ -46,8 +46,9 @@
     <td align="right">{{object.hit.getId}}</td>
     <td>{{object.getScore|floatformat:"-4"}}</td>
     <td>
-        <a href="/admin/{{opts.app_label}}/{{object.meta.model_name}}/{{object.pk}}/">{{object}}</a>.
+        <a href="../{{object.pk}}/">{{object}}</a>
 
+		  <!--
         {% for field in object.get_fields %}
             {% if field.was_highlighted %}
                 <h3
@@ -108,6 +109,7 @@ return false;
                 display: none;
             "
             id="object-{{object.pk}}-explanation">{{object.get_explanation}}</pre>
+			-->
     </td>
 </tr>
 {% endfor %}

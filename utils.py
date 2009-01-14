@@ -21,44 +21,42 @@ import sys
 
 from django.db.models.base import ModelBase
 
-class Model (object) :
+def get_model_name (model) :
+    if not model :
+        return None
 
-    def get_name (self, model) :
-        if not model :
-            return None
+    return get_name_by_model_name(
+        model._meta.app_label,
+        model._meta.object_name,
+    )
 
-        return self.get_name_by_model_name(
-            model._meta.app_label,
-            model._meta.object_name,
-        )
+def get_name_by_model_name (app_label, model_name) :
+    return "%s.%s" % (app_label, model_name)
 
-    def get_name_by_model_name (self, app_label, model_name) :
-        return "%s.%s" % (app_label, model_name)
+def get_model_by_index_model_name (app_label, model_index_name) :
+    o = __import__("%s.models" % app_label, {}, {}, ["models", ])
+    if not hasattr(o, model_index_name) :
+        return None
+    else :
+        return getattr(o, model_index_name).Meta.model
 
-    def get_model_by_index_model_name (self, app_label, model_index_name) :
-        o = __import__("%s.models" % app_label, {}, {}, ["models", ])
-        if not hasattr(o, model_index_name) :
-            return None
-        else :
-            return getattr(o, model_index_name).Meta.model
+get_model_by_index_model_name = classmethod(get_model_by_index_model_name)
 
-    get_model_by_index_model_name = classmethod(get_model_by_index_model_name)
+def get_uid (model, pk) :
+    return "%s/%s" % (get_model_name(model), pk, )
 
-    def get_uid (self, model, pk) :
-        return "%s/%s" % (self.get_name(model), pk, )
+def get_index_models (model) :
+    if isinstance(model, ModelBase) :
+        model = get_model_name(model)
+    elif isinstance(model.__class__, ModelBase) :
+        model = get_model_name(model.__class__)
 
-    def get_index_models (self, model) :
-        if isinstance(model, ModelBase) :
-            model = Model.get_name(model)
-        elif isinstance(model.__class__, ModelBase) :
-            model = self.get_name(model.__class__)
+    return sys.MODELS_REGISTERED.get(model, None)
 
-        return sys.MODELS_REGISTERED.get(model, None)
-
-    get_name    = classmethod(get_name)
-    get_name_by_model_name = classmethod(get_name_by_model_name)
-    get_uid     = classmethod(get_uid)
-    get_index_models    = classmethod(get_index_models)
+def get_index_model (app_label, index_name, ) :
+    for k in sys.MODELS_REGISTERED.get(app_label, list()) :
+        if k.meta.module_name == index_name :
+            return k
 
 def add_unicode_function (obj) :
     if hasattr(obj, "toString") :

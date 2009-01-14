@@ -17,12 +17,6 @@
 
 import unittest
 
-from django.conf import settings
-
-import constant, pylucene
-
-lucene = constant.import_lucene()
-
 class PyLuceneTestCase (unittest.TestCase) :
 
     def setUp (self) :
@@ -72,10 +66,13 @@ class PyLuceneTestCase (unittest.TestCase) :
 
 if __name__ == "__main__" :
     import sys
-
+    from django.conf import settings
     settings.SEARCH_STORAGE_PATH = settings.SEARCH_STORAGE_PATH  + "_test"
     settings.SEARCH_STORAGE_TYPE = "fs"
 
+    import constant, pylucene
+
+    lucene = constant.import_lucene()
     unittest.main(testRunner=unittest.TextTestRunner(verbosity=2))
     sys.exit()
 
