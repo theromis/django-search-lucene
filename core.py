@@ -235,7 +235,7 @@ class ModelsRegisteredDict (dict) :
 ######################################################################
 # Functions
 
-def register_index_model (mod) :
+def register_indexes (mod) :
     index_models = list()
     for i in dir(mod) :
         f = getattr(mod, i)
@@ -264,6 +264,30 @@ def register_index_model (mod) :
 
     if _is_locked :
         sys.MODELS_REGISTERED.lock()
+
+def register_index_model (mod) :
+    if mod == document.IndexModel :    
+        return False
+    try :
+        if not issubclass(mod, document.IndexModel) :
+            return False
+    except :
+        return False
+    
+    if sys.MODELS_REGISTERED.is_added(mod) :
+        return False
+    
+    _is_locked = sys.MODELS_REGISTERED.is_lock()
+
+    if _is_locked :
+        sys.MODELS_REGISTERED.unlock()
+
+    sys.MODELS_REGISTERED.add(mod)
+
+    if _is_locked :
+        sys.MODELS_REGISTERED.lock()
+
+    return True
 
 def initialize () :
     if sys.MODELS_REGISTERED.is_lock() :

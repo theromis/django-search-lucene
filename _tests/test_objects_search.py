@@ -50,7 +50,7 @@ if __name__ == "__main__" :
     import core, pylucene, document
     import models as models_tests
 
-    core.register_index_model(models_tests)
+    core.register_indexes(models_tests)
 
     models_tests.cleanup_index()
     models_tests.cleanup_docs()
