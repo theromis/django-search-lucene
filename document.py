@@ -182,7 +182,7 @@ class FieldBase (object) :
 
         return getattr(obj, name)
 
-    def get_index_fields (self, obj, ) :
+    def get_index_fields (self, obj) :
         for v, store, tokenize in self.to_index(self.get_value_from_object(obj, self.name), obj=obj) :
             if v is None or not v.strip() :
                 continue
@@ -238,8 +238,7 @@ class FieldBase (object) :
         if not query :
             return
 
-        _key = unicode(query)
-        if not self.highlighter.has_key(_key) :
+        if not self.highlighter.has_key(unicode(query)) :
             value = escape(unicode(self.to_model()))
             __highlighter = lucene.Highlighter(
                 lucene.SpanGradientFormatter(
@@ -259,13 +258,13 @@ class FieldBase (object) :
             tokens.close()
 
             if len(tf) < 1 :
-                self.highlighter[_key] = None
+                self.highlighter[unicode(query)] = None
             else :
-                self.highlighter[_key] = "".join(
+                self.highlighter[unicode(query)] = "".join(
                     [i.toString() for i in tf if i and i.getScore() > 0]
                 )
 
-        return self.highlighter.get(_key, None) is not None
+        return self.highlighter.get(unicode(query), None) is not None
 
     def highlight (self, query=None) :
         """
@@ -280,8 +279,6 @@ class FieldBase (object) :
 
         if self.was_highlighted(query=query) :
             return self.highlighter.get(unicode(query))
-
-        return None
 
 class Fields (object) :
     class Sort (object) :
@@ -303,7 +300,7 @@ class Fields (object) :
         def to_model (self, v, **kwargs) :
             return unicode(v)
 
-        def get_index_fields (self, obj, ) :
+        def get_index_fields (self, obj) :
             return [
                 pylucene.Field.new(
                     self.name,
@@ -350,30 +347,11 @@ class Fields (object) :
 
     class MultiKeyword (FieldBase) :
         tokenize = False
-        store = True
         analyzer = lucene.KeywordAnalyzer()
         has_terms = True
 
         def to_index (self, v, obj=None) :
-            return [ (i, False, False, ) for i in v ]
-
-        def get_index_fields (self, obj) :
-            _l = list(super(Fields.MultiKeyword, self).get_index_fields(obj))
-
-            _v = getattr(obj, self.name)
-            if _v is None :
-                _v = ""
-
-            _l.append(
-                pylucene.Field.new(
-                    self.name,
-                    _v,
-                    True,
-                    self.tokenize,
-                )
-            )
-
-            return _l
+            return [ (i, True, False, ) for i in v ]
 
     class Keyword (FieldBase) :
         tokenize = False
@@ -421,12 +399,12 @@ class Fields (object) :
 
     ##################################################
     # Django native model fields
-    class MultiKeywordHidden (MultiKeyword, ) :
+    class MultiKeywordHidden (object) :
         def to_index (self, v, obj=None) :
             v.sort()
-            return [ (i, False, False, ) for i in v ]
+            return [ (i, False, False, ) for i in v ] + [(v[-1], True, False, ), ]
 
-    class File (MultiKeyword, ) :
+    class File (MultiKeywordHidden, MultiKeyword, ) :
         has_terms = True
         def __init__ (self, *args, **kwargs) :
             if not kwargs.has_key("func_get_value_from_object") :
@@ -437,7 +415,7 @@ class Fields (object) :
                 )
             super(Fields.File, self).__init__(*args, **kwargs)
 
-    class FilePath (MultiKeyword, ) :
+    class FilePath (MultiKeywordHidden, MultiKeyword, ) :
         has_terms = True
         def __init__ (self, *args, **kwargs) :
             if not kwargs.has_key("func_get_value_from_object") :
@@ -448,7 +426,7 @@ class Fields (object) :
                 )
             super(Fields.FilePath, self).__init__(*args, **kwargs)
 
-    class Image (MultiKeyword, ) :
+    class Image (MultiKeywordHidden, MultiKeyword, ) :
         has_terms = True
         def __init__ (self, *args, **kwargs) :
             if not kwargs.has_key("func_get_value_from_object") :
@@ -459,7 +437,7 @@ class Fields (object) :
                 )
             super(Fields.Image, self).__init__(*args, **kwargs)
 
-    class URL (MultiKeyword, ) :
+    class URL (MultiKeywordHidden, MultiKeyword, ) :
         has_terms = True
         def __init__ (self, *args, **kwargs) :
             if not kwargs.has_key("func_get_value_from_object") :
@@ -470,7 +448,7 @@ class Fields (object) :
                 )
             super(Fields.URL, self).__init__(*args, **kwargs)
 
-    class Email (MultiKeyword, ) :
+    class Email (MultiKeywordHidden, MultiKeyword, ) :
         has_terms = True
         def __init__ (self, *args, **kwargs) :
             if not kwargs.has_key("func_get_value_from_object") :
@@ -545,7 +523,7 @@ class Meta (object) :
             self.verbose_name_plural = self.model._meta.verbose_name_plural
 
         self.object_name = self.model._meta.object_name
-        self.module_name = self.index_model.__class__.__name__
+        self.module_name = self.model._meta.module_name
         self.app_label = self.model._meta.app_label
 
         self.model_name = "%s.%s" % (self.app_label, self.object_name, )
@@ -616,13 +594,12 @@ class Meta (object) :
                 abstract=True,
             )
             self.fields[constant.FIELD_NAME_PK] = pk_field
-            self.fields["pk"] = pk_field
             self.fields_ordering.append(pk_field.name)
 
         # uid field
         self.fields[constant.FIELD_NAME_UID] = Fields.Keyword(
             constant.FIELD_NAME_UID,
-            func_get_value_from_object=lambda obj, name : utils.get_uid(obj, obj.pk),
+            func_get_value_from_object=lambda obj, name : utils.Model.get_uid(obj, obj.pk),
             abstract=True,
         )
 
@@ -636,7 +613,7 @@ class Meta (object) :
         # model field
         self.fields[constant.FIELD_NAME_MODEL] = Fields.Keyword(
             constant.FIELD_NAME_MODEL,
-            func_get_value_from_object=lambda obj, name : utils.get_model_name(obj),
+            func_get_value_from_object=lambda obj, name : utils.Model.get_name(obj),
             abstract=True,
         )
 
@@ -691,7 +668,7 @@ class Meta (object) :
         return (_f, args, kwargs, )
 
     def get_field (self, name) :
-        return self.fields.get(Document._get_attrname(name), None)
+        return self.fields.get(name, None)
 
     def get_fields (self, abstract=None, ) :
         for name in self.fields_ordering :
@@ -710,13 +687,15 @@ class IndexModel (object) :
         self.local_attrs = list()
         self._meta = Meta(self, self.Meta())
         self.meta = self._meta
-        self.DoesNotExist = ObjectDoesNotExist
 
     def get_meta (self) :
         """
         For accessing meta object in the template.
         """
         return self._meta
+
+    def get_searcher (self) :
+        return getattr(self._meta.model, constant.METHOD_NAME_SEARCH)
 
 class Document (object) :
 
@@ -781,16 +760,14 @@ class Document (object) :
     __repr__ = __unicode__
     __str__ = __unicode__
 
-    def _get_attrname (self, name) :
+    def __get_attrname (self, name) :
         if name == "pk" :
             return constant.FIELD_NAME_PK
 
         return name
 
-    _get_attrname = classmethod(_get_attrname)
-
     def __getattr__ (self, name) :
-        name = self._get_attrname(name)
+        name = self.__get_attrname(name)
         if name and self.has_field(name) :
             if not self.values.has_key(name) :
                 self.values[name] = self.get_field(name).to_model()
@@ -894,7 +871,7 @@ def get_new_index_model (model, local_attrs=dict(), meta=None, name=None) :
         )
 
     return new.classobj(
-        name and name or "%s" % utils.get_model_name(model),
+        name and name or "%s" % utils.Model.get_name(model),
         (IndexModel, ),
         {
             "Meta": meta,

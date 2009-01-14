@@ -30,17 +30,10 @@ class Manager (models.Manager) :
 
         self.manager_id = constant.METHOD_NAME_SEARCH
 
-        self._objects_search_index_model_name = kwargs.get("index_model", None)
-
-    def contribute_to_class_index_model (self, index_model, name):
+    def contribute_to_class(self, index_model, name):
         self.index_model = index_model
 
-    def contribute_to_class (self, model, name):
-         sys.MODELS_OBJECTS_SEARCHER.append(
-            (model, self._objects_search_index_model_name, name)
-        )
-
-    def get_query_set (self):
+    def get_query_set(self):
         import core
         core.initialize()
 

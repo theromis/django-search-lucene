@@ -17,7 +17,7 @@
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 """
 
-import sys, re
+import re
 
 from django.core.exceptions import ImproperlyConfigured
 from django.db import models as models_django
@@ -80,7 +80,7 @@ ANALYZERS = {
     "Whitespace"     : lucene.WhitespaceAnalyzer,
 }
 
-METHOD_NAME_SEARCH = "objects_search"
+METHOD_NAME_SEARCH = "objects"
 
 SIGNALS = (
     "post_save",
@@ -146,6 +146,7 @@ FIELDS_MULTI_KEYWORD = (
 )
 
 FIELDS_KEYWORD = (
+    models_django.USStateField,
     models_django.SlugField,
 )
 
@@ -169,8 +170,6 @@ class CLASS_SORT_RANDOM (object) :
 
 SORT_RANDOM = CLASS_SORT_RANDOM()
 
-if not hasattr(sys, "MODELS_OBJECTS_SEARCHER") :
-    sys.MODELS_OBJECTS_SEARCHER = list()
 
 """
 Description

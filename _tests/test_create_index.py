@@ -19,15 +19,17 @@
 
 import sys, unittest
 
+import core, pylucene
+import models as models_tests
+
 class ModelCreateIndexTestCase (unittest.TestCase):
 
     def test_create_index (self) :
-        _index_model = sys.MODELS_REGISTERED.get("tests.doc_without_index")[0]
-        o = models_tests.doc_without_index.objects.all()
-        o_n = _index_model.objects.all()
+        o = models_tests.document_without_index.objects.all()
+        o_n = models_tests.document_without_index.objects_search.all()
 
-        models_tests.doc_without_index.objects.all().create_index()
-        o_n = _index_model.objects.all()
+        models_tests.document_without_index.objects.all().create_index()
+        o_n = models_tests.document_without_index.objects_search.all()
 
         self.assertEqual(
             set([i.pk for i in o]),
@@ -35,17 +37,15 @@ class ModelCreateIndexTestCase (unittest.TestCase):
         )
 
 if __name__ == "__main__" :
+    from django.db import models
     from django.conf import settings
     settings.SEARCH_STORAGE_PATH = settings.SEARCH_STORAGE_PATH  + "_test"
-    settings.DEBUG = False
 
-    import core, pylucene
-    import models as models_tests
+    models.get_models()
 
-    models_tests.add()
+    models_tests.cleanup_documents(models_tests.document_without_index)
+    models_tests.insert_documents(5, model=models_tests.document_without_index)
 
-    models_tests.cleanup_docs(models_tests.doc_without_index)
-    models_tests.insert_docs(5, model=models_tests.doc_without_index)
 
     unittest.main(testRunner=models_tests.SearcherTestRunner(verbosity=2))
 

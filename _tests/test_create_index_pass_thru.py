@@ -19,78 +19,81 @@
 
 import sys, unittest
 
+import core, pylucene
+import models as models_tests
+
 class ModelCreateIndexPassThruTestCase (unittest.TestCase):
 
     def test_create_index_pass_thru (self) :
-        o = models_tests.doc.objects.all()[0]
+        o = models_tests.document.objects.all()[0]
         self.assertEqual(
-            models_tests.doc.objects.get(pk=o.pk),
-            models_tests.doc.objects.get(pk=o.pk).create_index(),
+            models_tests.document.objects.get_or_create(pk=o.pk),
+            models_tests.document.objects.get_or_create(pk=o.pk).create_index(),
         )
         self.assertEqual(
-            models_tests.doc.objects.latest("time_added"),
-            models_tests.doc.objects.latest("time_added").create_index(),
+            models_tests.document.objects.latest("time_added"),
+            models_tests.document.objects.latest("time_added").create_index(),
         )
         self.assertEqual(
-            list(models_tests.doc.objects.all()),
-            list(models_tests.doc.objects.all().create_index()),
+            list(models_tests.document.objects.all()),
+            list(models_tests.document.objects.all().create_index()),
         )
         self.assertEqual(
-            list(models_tests.doc.objects.filter(pk__in=range(10))),
-            list(models_tests.doc.objects.filter(pk__in=range(10)).create_index()),
+            list(models_tests.document.objects.filter(pk__in=range(10))),
+            list(models_tests.document.objects.filter(pk__in=range(10)).create_index()),
         )
         self.assertEqual(
-            list(models_tests.doc.objects.exclude(pk__in=range(600))),
-            list(models_tests.doc.objects.exclude(pk__in=range(600)).create_index()),
+            list(models_tests.document.objects.exclude(pk__in=range(600))),
+            list(models_tests.document.objects.exclude(pk__in=range(600)).create_index()),
         )
         self.assertEqual(
-            list(models_tests.doc.objects.exclude(pk__in=range(600)).order_by("time_added")),
-            list(models_tests.doc.objects.exclude(pk__in=range(600)
+            list(models_tests.document.objects.exclude(pk__in=range(600)).order_by("time_added")),
+            list(models_tests.document.objects.exclude(pk__in=range(600)
                 ).order_by("time_added").create_index()),
         )
         self.assertEqual(
-            list(models_tests.doc.objects.exclude(pk__in=range(600)
+            list(models_tests.document.objects.exclude(pk__in=range(600)
                 ).order_by("time_added").distinct()),
-            list(models_tests.doc.objects.exclude(pk__in=range(600)
+            list(models_tests.document.objects.exclude(pk__in=range(600)
                 ).order_by("time_added").distinct().create_index()),
         )
 
 
         self.assertEqual(
-            list(models_tests.doc.objects.exclude(pk__in=range(600)
+            list(models_tests.document.objects.exclude(pk__in=range(600)
                 ).order_by("time_added").extra(where=["id is not null"])),
-            list(models_tests.doc.objects.exclude(pk__in=range(600)
+            list(models_tests.document.objects.exclude(pk__in=range(600)
                 ).order_by("time_added").extra(where=["id is not null"]
                     ).create_index()),
         )
         self.assertEqual(
-            list(models_tests.doc.objects.exclude(pk__in=range(600)
+            list(models_tests.document.objects.exclude(pk__in=range(600)
                 ).order_by("time_added").extra(where=["id is not null"]).distinct()),
-            list(models_tests.doc.objects.exclude(pk__in=range(600)
+            list(models_tests.document.objects.exclude(pk__in=range(600)
                 ).order_by("time_added").extra(where=["id is not null"]
                     ).distinct().create_index()),
         )
         self.assertEqual(
-            list(models_tests.doc.objects.exclude(pk__in=range(600)
+            list(models_tests.document.objects.exclude(pk__in=range(600)
                 ).order_by("time_added").extra(where=["id is not null"]
                     ).distinct().reverse()),
-            list(models_tests.doc.objects.exclude(pk__in=range(600)
+            list(models_tests.document.objects.exclude(pk__in=range(600)
                 ).order_by("time_added").extra(where=["id is not null"]
                     ).distinct().reverse()),
         )
 
 
 if __name__ == "__main__" :
+    from django.db import models
     from django.conf import settings
+
+    models.get_models()
+
     settings.SEARCH_STORAGE_PATH = settings.SEARCH_STORAGE_PATH  + "_test"
     settings.SEARCH_STORAGE_TYPE = "ram"
 
-    import core, pylucene
-    import models as models_tests
-    models_tests.add()
-
-    models_tests.cleanup_docs(models_tests.doc_without_index)
-    models_tests.insert_docs(5, model=models_tests.doc_without_index)
+    models_tests.cleanup_documents(models_tests.document_without_index)
+    models_tests.insert_documents(5, model=models_tests.document_without_index)
 
     unittest.main(testRunner=models_tests.SearcherTestRunner(verbosity=2))
 

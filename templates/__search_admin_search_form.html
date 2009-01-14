@@ -3,17 +3,10 @@
 <!-- search form begin -->
 <div class="toolbar">
 <form
-	name="form-search-query"
-	{% if in_search %}
-		 action=""
-	{% else %}
-		 action="__search__/"
-	{% endif %}
-	method="POST"
+    name="form-search-query"
+    action="__search__/"
+    method="POST"
 >
-    <input type="hidden" name="model_name" value="{{opts_model.get_meta.model_name}}" />
-    <input type="hidden" name="module_name" value="{{opts_model.get_meta.module_name}}" />
-
     {% if error %}
         <ul class="errorlist">
             <li>
@@ -29,7 +22,7 @@
     &nbsp;
     <input class="submit" type="submit" name="search" value="{% trans "Search" %}" />
 	 <a
-			href="http://lucene.apache.org/java/2_4_0/queryparsersyntax.html"
+			href="http://lucene.apache.org/java/docs/queryparsersyntax.html"
 		>Help on Lucene Query Syntax.</a>
     <div style="clear:both;"></div>
 </form>

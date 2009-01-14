@@ -1,1 +1,1 @@
-/media/workspace/workspace/django-search-with-lucene/project/dsl/search/models_sql_query.py
+../models_sql_query.py

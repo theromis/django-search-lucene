@@ -16,13 +16,16 @@
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 import unittest, sys, datetime, random
+import core, pylucene, document
+import models as models_tests
+
 class SignalsTestCase (unittest.TestCase):
     def setUp (self) :
-        self.from_model = models_tests.doc.objects
-        self.from_indexed = sys.MODELS_REGISTERED.get("tests.doc")[0].objects
+        self.from_model = models_tests.document.objects
+        self.from_indexed = models_tests.document.objects_search
 
     def testCreateObject (self) :
-        o = models_tests.doc.objects.create(
+        o = models_tests.document.objects.create(
             title=words(5, False),
             content=paragraphs(1, False)[0],
             summary=paragraphs(1, False)[0],
@@ -64,19 +67,32 @@ if __name__ == "__main__" :
     import sys
 
     from django.conf import settings
-    settings.SEARCH_STORAGE_PATH = settings.SEARCH_STORAGE_PATH  + "_test"
-    settings.SEARCH_STORAGE_TYPE = "fs"
-    settings.DEBUG = False
-
     from django.core.exceptions import ObjectDoesNotExist
     from django.contrib.webdesign.lorem_ipsum import words, paragraphs
-    import core, pylucene, document
-    import models as models_tests
-    models_tests.add()
+    from django.db import models
+
+    models.get_models()
+
+    settings.SEARCH_STORAGE_PATH = settings.SEARCH_STORAGE_PATH  + "_test"
+    settings.SEARCH_STORAGE_TYPE = "fs"
+    #settings.DEBUG = 2
+
+    # set index model
+    class documentShape (document.IndexModel) :
+        class Meta :
+            model = models_tests.document
+            ordering = ("-id", )
+
+        title    = document.IndexField.Char(analyzer="Brazilian", )
+
+        def __unicode__ (self) :
+            return "%s" % self.email
+
+    sys.MODELS_REGISTERED.add(documentShape)
 
     models_tests.cleanup_index()
-    models_tests.cleanup_docs()
-    models_tests.insert_docs(10)
+    models_tests.cleanup_documents()
+    models_tests.insert_documents(10)
 
     unittest.main(testRunner=models_tests.SearcherTestRunner(verbosity=2))
     sys.exit()

@@ -17,17 +17,20 @@
 
 import sys, sqlite3, time, threading, datetime, random, unittest
 
-class PyLuceneThreadTestCase (unittest.TestCase):
+from django.conf import settings
+from django.contrib.webdesign.lorem_ipsum import words, paragraphs
+from django.db.models import ObjectDoesNotExist
 
-    def setUp (self) :
-        self.from_model = models_tests.doc.objects
-        self.from_indexed = sys.MODELS_REGISTERED.get("tests.doc")[0].objects
+import pylucene, core
+import models as models_tests
+
+class PyLuceneThreadTestCase (unittest.TestCase):
 
     def update_document_without_save (self, mainThread=False, ) :
         if not mainThread :
             pylucene.initialize_vm()
 
-        self.documents = list(self.from_model.all())
+        self.documents = list(models_tests.document.objects.all())
         random.shuffle(self.documents)
         for o in self.documents :
             __title = str(o.pk) + " : " + o.title + str(random.random() * 1000)
@@ -38,7 +41,7 @@ class PyLuceneThreadTestCase (unittest.TestCase):
 
             sys.INDEX_MANAGER.execute("index_update", o)
 
-            o_n = self.from_indexed.get(pk=o.pk)
+            o_n = models_tests.document.objects_search.get(pk=o.pk)
             self.assertEqual(o.title, o_n.title, )
             self.assertEqual(o.summary, o_n.summary, )
 
@@ -49,7 +52,7 @@ class PyLuceneThreadTestCase (unittest.TestCase):
         if not mainThread :
             pylucene.initialize_vm()
 
-        self.documents = list(self.from_model.all())
+        self.documents = list(models_tests.document.objects.all())
         random.shuffle(self.documents)
         for o in self.documents :
             __title = str(o.pk) + " : " + o.title + str(random.random() * 1000)
@@ -69,7 +72,7 @@ class PyLuceneThreadTestCase (unittest.TestCase):
                 raise
             else :
                 try :
-                    o_n = self.from_indexed.get(pk=o.pk)
+                    o_n = models_tests.document.objects_search.get(pk=o.pk)
                 except ObjectDoesNotExist :
                     pass
                 except Exception, e :
@@ -85,21 +88,13 @@ class PyLuceneThreadTestCase (unittest.TestCase):
 
 
 if __name__ == "__main__" :
-    from django.conf import settings
     settings.SEARCH_STORAGE_PATH = settings.SEARCH_STORAGE_PATH  + "_test"
     settings.SEARCH_STORAGE_TYPE = "fs"
-    settings.DEBUG = False
-
-    from django.contrib.webdesign.lorem_ipsum import words, paragraphs
-    from django.db.models import ObjectDoesNotExist
-
-    import pylucene, core
-    import models as models_tests
-    models_tests.add()
+    #settings.DEBUG = 2
 
     models_tests.cleanup_index()
-    models_tests.cleanup_docs()
-    models_tests.insert_docs(10)
+    models_tests.cleanup_documents()
+    models_tests.insert_documents(10)
 
     unittest.main(testRunner=models_tests.SearcherTestRunner(verbosity=2))
     sys.exit()

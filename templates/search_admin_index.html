@@ -19,10 +19,7 @@
 <div id="content-main">
 
 <div class="module">
-
-<!--
 {% include "__search_admin_search_form.html" %}
--->
 
 {% block result-list %}
 <table class="table-search" width="100%">
@@ -81,8 +78,8 @@
 <tr>
     <td>
         <a
-            href="{{index_model.get_meta.model_name}}/{{index_model.get_meta.module_name}}/"
-            >{{index_model.get_meta.module_name|capfirst}}({{index_model.get_meta.app_label}})</a>
+            href="{{index_model.get_meta.model_name}}/"
+            >{{index_model.get_meta.verbose_name|capfirst}}({{index_model.get_meta.app_label}})</a>
     </td>
     <td align="right">{{index_model.get_searcher.count}}</td>
 </tr>

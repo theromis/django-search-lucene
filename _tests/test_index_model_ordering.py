@@ -18,12 +18,20 @@
 """
 
 import sys, unittest
+from django.conf import settings
+
+import core, document, utils
+
+import models as models_tests
+
 class ModelIndexModelOrdering (unittest.TestCase):
     def setUp (self) :
-        self.from_model = models_tests.doc.objects
-        self.from_indexed = sys.MODELS_REGISTERED.get("tests.doc")[0].objects
+        self.from_model = models_tests.document.objects
+        self.from_indexed = models_tests.document.objects_search
 
     def test_ordering (self) :
+        __index_model = utils.Model.get_index_model(models_tests.document)
+
         o = self.from_model.all().order_by("-time_added", "title", )
         o_n = self.from_indexed.all().order_by("-time_added", "title", )
 
@@ -33,6 +41,8 @@ class ModelIndexModelOrdering (unittest.TestCase):
         )
 
     def test_ordering_random (self) :
+        __index_model = utils.Model.get_index_model(models_tests.document)
+
         o = self.from_model.all().order_by("?", )
         o_n = self.from_indexed.all().order_by("?", )
 
@@ -41,18 +51,29 @@ class ModelIndexModelOrdering (unittest.TestCase):
         )
 
 if __name__ == "__main__" :
-    from django.conf import settings
+    import core
+
+    from django.db import models
+    models.get_models()
+
+    # set index model
+    class documentShape (document.IndexModel) :
+        class Meta :
+            model = models_tests.document
+            ordering = ("-id", )
+
+        def __unicode__ (self) :
+            return "%s" % self.email
+
+    sys.MODELS_REGISTERED.add(documentShape)
+
     settings.SEARCH_STORAGE_PATH = settings.SEARCH_STORAGE_PATH  + "_test"
     settings.SEARCH_STORAGE_TYPE = "fs"
-    settings.DEBUG = False
-
-    import core, document, utils
-    import models as models_tests
-    models_tests.add()
+    settings.DEBUG = 2
 
     models_tests.cleanup_index()
-    models_tests.cleanup_docs()
-    models_tests.insert_docs(3)
+    models_tests.cleanup_documents()
+    models_tests.insert_documents(3)
 
     unittest.main(testRunner=models_tests.SearcherTestRunner(verbosity=2))
     sys.exit()

@@ -55,10 +55,10 @@ class IndexManager (object) :
 
         try :
             for obj in objs :
-                index_models = utils.get_index_models(obj)
+                index_models = utils.Model.get_index_models(obj)
                 for index_model in index_models :
                     searcher = pylucene.Searcher(storage_path=index_model._meta.storage_path, )
-                    uid = utils.get_uid(index_model._meta.model, obj.pk, )
+                    uid = utils.Model.get_uid(index_model._meta.model, obj.pk, )
                     doc = searcher.get_document_by_uid(uid)
                     if not doc :
                         uid = None
@@ -82,13 +82,13 @@ class IndexManager (object) :
 
     def func_index_update (self, obj, **kwargs) :
         try :
-            index_models = utils.get_index_models(obj)
+            index_models = utils.Model.get_index_models(obj)
             for index_model in index_models :
                 kwargs.update({"storage_path": index_model._meta.storage_path, })
                 w = pylucene.IndexWriter(**kwargs)
                 w.index(
                     document.Document.create_document_from_object(index_model, obj),
-                    uid=str(utils.get_uid(index_model._meta.model, obj.pk)),
+                    uid=str(utils.Model.get_uid(index_model._meta.model, obj.pk)),
                 )
                 w.close()
         except Exception, e :
@@ -101,7 +101,7 @@ class IndexManager (object) :
         try :
             w = pylucene.IndexWriter(**kwargs)
             w.unindex(
-                pylucene.Term.new(constant.FIELD_NAME_UID, str(utils.get_uid(obj, obj.pk)))
+                pylucene.Term.new(constant.FIELD_NAME_UID, str(utils.Model.get_uid(obj, obj.pk)))
             )
             w.close()
         except Exception, e :
@@ -154,7 +154,7 @@ class ModelsRegisteredDict (dict) :
         self.write_lock = threading.RLock()
 
     def is_added (self, f) :
-        name = utils.get_model_name(f.Meta.model)
+        name = utils.Model.get_name(f.Meta.model)
         if not self.has_key(name) :
             return False
 
@@ -174,7 +174,7 @@ class ModelsRegisteredDict (dict) :
     def add (self, index_model, force=False) :
         if self.is_lock() : return
 
-        name = utils.get_model_name(index_model.Meta.model)
+        name = utils.Model.get_name(index_model.Meta.model)
         if not force and self.has_key(name) :
             return
 
@@ -205,11 +205,11 @@ class ModelsRegisteredDict (dict) :
                 __index_model = index_model()
                 setattr(
                     index_model,
-                    "objects", manager.Manager(),
+                    constant.METHOD_NAME_SEARCH, manager.Manager(),
                 )
-                getattr(index_model, "objects").contribute_to_class_index_model(
+                getattr(index_model, constant.METHOD_NAME_SEARCH).contribute_to_class(
                     __index_model,
-                    "objects",
+                    constant.METHOD_NAME_SEARCH,
                 )
 
                 # attach `create_index` method.
@@ -234,55 +234,8 @@ class ModelsRegisteredDict (dict) :
 
 ######################################################################
 # Functions
-
-def register_index_model (mod) :
-    index_models = list()
-    for i in dir(mod) :
-        f = getattr(mod, i)
-        if f == document.IndexModel :    
-            continue
-        try :
-            if not issubclass(f, document.IndexModel) :
-                continue
-        except :
-            continue
-
-        if sys.MODELS_REGISTERED.is_added(f) :
-            continue
-
-        index_models.append(f)
-
-    index_models = set(index_models)
-
-    _is_locked = sys.MODELS_REGISTERED.is_lock()
-
-    if _is_locked :
-        sys.MODELS_REGISTERED.unlock()
-
-    for s in index_models :
-        sys.MODELS_REGISTERED.add(s)
-
-    if _is_locked :
-        sys.MODELS_REGISTERED.lock()
-
 def initialize () :
     if sys.MODELS_REGISTERED.is_lock() :
-        while True :
-            try :
-                _model, _index_model_name, _name_search = sys.MODELS_OBJECTS_SEARCHER.pop()
-            except IndexError :
-                break
-
-            _index_model = utils.get_index_model(
-                "%s.%s" % (_model._meta.app_label, _model._meta.object_name, ),
-                _index_model_name,
-            )
-            setattr(
-                _model,
-                _name_search,
-                getattr(_index_model, "objects", ),
-            )
-
         return
 
     mods = list()
